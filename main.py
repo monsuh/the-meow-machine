@@ -134,7 +134,7 @@ async def on_message(message):
                await message.channel.send("Why thank you {}! I pride myself on my excellent quality of work. Although I am passionate about this job and do it because I love it, it is always nice to get a little validation from a nice person like you.".format(message.author.mention))
           else:
                await message.channel.send("meow")
-     elif message.content.lower().find("game") != -1:
-          await message.channel.send("Well I *never*. I thought we were friends, no, FAMILY, but here you are, saying such dastardly things. We could have been great, you and I. But you insulted me. YOU INSULTED ME. I can barely look at you. What happened to the person I knew. You were so kind, so caring, I thought you were the second coming. But it was a LIE. I believed in you, but not anymore. Never again. Please leave. I cannot live knowing I once cared for you.")
+     #elif message.content.lower().find("game") != -1:
+          #await message.channel.send("Well I *never*. I thought we were friends, no, FAMILY, but here you are, saying such dastardly things. We could have been great, you and I. But you insulted me. YOU INSULTED ME. I can barely look at you. What happened to the person I knew. You were so kind, so caring, I thought you were the second coming. But it was a LIE. I believed in you, but not anymore. Never again. Please leave. I cannot live knowing I once cared for you.")
 
 client.run(discordToken)
