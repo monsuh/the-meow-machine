@@ -25,31 +25,28 @@ async def on_ready():
           await processEvent.setTimerForClosestEvent()
      except IndexError:
           logging.info("no items in events list")
-     #await asyncio.gather(*(sendReminder(event) for event in eventsList))
 
 @client.event
 async def on_message(message):
      if message.author == client.user:
           return
      elif message.content.startswith("!help"):
-          await message.channel.send(">>> Commands:\n!peepee @someone\n!catpic\n!event {event name} [date (today OR tomorrow OR YYYY/MM/DD) hours:minutesAM/PM (NOTE ALL TIMES IN EST)]")
-     elif message.content.startswith("!peepee"):
+          await message.channel.send(">>> Commands:\n!poke @someone\n!catpic\n!event {event name} [date (today OR tomorrow OR YYYY/MM/DD) hours:minutesAM/PM (NOTE ALL TIMES IN EST)]")
+     elif message.content.startswith("!poke"):
           if len(message.mentions) != 0:
                for mention in message.mentions:
-                    await message.channel.send("{} just pissed themselves haha pathetic lil pissbaby can't hold it in".format(mention.mention))      
+                    await message.channel.send("{} just poked {}. it's super effective.".format(message.author.mention, mention.mention))      
           else:
-               await message.channel.send("{} just pissed themselves haha pathetic lil pissbaby can't hold it in".format(message.author.mention))
+               await message.channel.send("{} just poked themselves out of confusion.".format(message.author.mention))
      elif message.content.startswith("!catpic"):
-          catpic = Path("C:/Users/rainb/Pictures/cat.jpg")
+          catpic = Path("pics/cat.jpg")
           await message.channel.send(file=discord.File(catpic))
      elif message.content.startswith("!stuffypic"):
-          #await message.channel.send(file=discord.File(r"C:\Users\rainb\Documents\Coding\Discord Bot\stuffy pics\snorlax_1.png")) 
           try:
                stuffyName = message.content.split()[1]
                randomNumber = 1
-               stuffyPicsFolder = Path("C:/Users/rainb/Pictures/stuffy pics")
-               await asyncio.create_task(message.channel.send(file=discord.File(stuffyPicsFolder / "{}_{}.png".format(stuffyName, str(randomNumber)))))
-               #await message.channel.send(file=discord.File(r"C:\Users\rainb\Documents\Coding\Discord Bot\stuffy pics\snorlax_1.png")) 
+               stuffyPicsFolder = Path("pics")
+               await message.channel.send(file=discord.File(stuffyPicsFolder / "{}_{}.png".format(stuffyName, str(randomNumber))))
           except FileNotFoundError:
                await message.channel.send("an oopsie happened there are no stuffies named {}".format(stuffyName))
           except IndexError:
@@ -134,7 +131,5 @@ async def on_message(message):
                await message.channel.send("Why thank you {}! I pride myself on my excellent quality of work. Although I am passionate about this job and do it because I love it, it is always nice to get a little validation from a nice person like you.".format(message.author.mention))
           else:
                await message.channel.send("meow")
-     #elif message.content.lower().find("game") != -1:
-          #await message.channel.send("Well I *never*. I thought we were friends, no, FAMILY, but here you are, saying such dastardly things. We could have been great, you and I. But you insulted me. YOU INSULTED ME. I can barely look at you. What happened to the person I knew. You were so kind, so caring, I thought you were the second coming. But it was a LIE. I believed in you, but not anymore. Never again. Please leave. I cannot live knowing I once cared for you.")
 
 client.run(discordToken)
