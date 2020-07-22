@@ -17,7 +17,7 @@ from pathlib import Path
 
 @client.event
 async def on_ready():
-     logging.disable()
+     logging.disable(logging.CRITICAL)
      logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
      logging.info("We online boys")
      await client.change_presence(activity=discord.Game(name='!help'))
