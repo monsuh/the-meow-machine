@@ -11,5 +11,5 @@ discordToken = os.getenv("DISCORD_TOKEN")
 
 databaseURL = os.getenv("DATABASE_URL")
 
-connection = psycopg2.connect(databaseURL)
+connection = psycopg2.connect(databaseURL, sslmode="require")
 cursor = connection.cursor()

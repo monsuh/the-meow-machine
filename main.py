@@ -10,7 +10,7 @@ import filerw
 import formatdt
 import processEvent
 
-from setup import client, discordToken
+from setup import client, discordToken, cursor
 from datetime import datetime, timedelta
 from random import randint
 from pathlib import Path
