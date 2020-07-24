@@ -2,50 +2,74 @@ import logging
 import errors
 
 from datetime import datetime, timedelta
+from setup import connection, cursor
+from psycopg2 import sql
 
-def convertToDateNonCoroutine(event):
-     eventYear = int(event[event.find("[") + 1: event.find("]")].split()[0])
-     eventMonth = int(event[event.find("[") + 1: event.find("]")].split()[1])
-     eventDay = int(event[event.find("[") + 1: event.find("]")].split()[2])
-     eventTimeHours = int(event[event.find("[") + 1: event.find("]")].split()[3])
-     eventTimeMinutes = int(event[event.find("[") + 1: event.find("]")].split()[4])
-     eventDateTime = datetime(eventYear, eventMonth, eventDay, eventTimeHours, eventTimeMinutes) + timedelta(hours = 4)
-     return eventDateTime
+async def retrieveFirstEntry(database, key):
+     try:
+          cursor.execute(
+               sql.SQL('SELECT * FROM {table} ORDER BY {orderKey};').format(
+                    table = sql.Identifier(database), 
+                    orderKey = sql.Identifier(database, key)))
+          return cursor.fetchone()
+     except Exception as e:
+          logging.info("Error with retrieving first entry: {}".format(e))
 
-async def readFirstLine(fileName):
-     file = open(fileName, "r")
-     firstLine = file.readline()
-     file.close()
-     logging.info("first line of {} has been read".format(fileName))
-     return firstLine
+async def retrieveAllEntries(database):
+     try:
+          cursor.execute(
+               sql.SQL("SELECT * FROM {table}").format(
+                    table = sql.Identifier(database)))
+          return cursor.fetchall()
+     except Exception as e:
+          logging.info("Error with retrieving entries: {}".format(e))
 
-async def readFile(fileName):
-     file = open(fileName, "r")
-     fileContents = file.readlines()
-     file.close()
-     logging.info("{} has been read".format(fileName))
-     return fileContents
-
-async def appendNewEventToFile(fileName, event):
-     file = open(fileName, "r+")
-     fileContents = file.readlines()
-     for line in fileContents:
-          if line == event:
-               logging.info("{} already exists".format(event[0:-1]))
+async def insertEntry(database, event):
+     commands = (
+          sql.SQL('''SET TIMEZONE TO {timezone};''').format(
+               timezone = sql.Identifier(event[4])),
+          sql.SQL(
+          '''
+               SELECT Name, Channel, Datetime 
+               FROM {table} 
+               WHERE Name = %s AND Channel = %s AND DATETIME = %s
+               LIMIT 1
+          ''').format(
+               table = sql.Identifier(database)),
+          sql.SQL(
+          '''
+               INSERT INTO {table}
+               VALUES (%s, %s, %s, %s);
+          ''').format(
+               table = sql.Identifier(database))
+     )
+     try:
+          cursor.execute(commands[0])
+     except Exception as e:
+          logging.info("Error with setting time zone: {}".format(e))
+     else:
+          try:
+               match = cursor.execute(commands[1], (event[0], event[2], event[3]))
+               if match != None:
+                    raise errors.RepetitionError
+          except errors.RepetitionError:
+               logging.info("Entry already exists")
                raise errors.RepetitionError
-     else:
-          fileContents.append(event)
-          fileContents.sort(key = convertToDateNonCoroutine) #possibly have to make sort awaitable
-          file.seek(0,0)
-          file.writelines(fileContents)
-     file.close()
-     if event == fileContents[0] or event[event.find("[") + 1: event.find("]")] == fileContents[0][fileContents[0].find("[") + 1: fileContents[0].find("]")]:
-          return True
-     else:
-          return False
+          except Exception as e:
+               logging.info("Error with retrieving matching events: {}".format(e)) 
+          else:
+               try:
+                    cursor.execute(commands[2], (event[0], event[1], event[2], event[3]))
+                    connection.commit()
+               except Exception as e:
+                    logging.info("Error with inserting data: {}".format(e))
 
-async def overWriteFile(fileName, newContent):
-     file = open(fileName, "w")
-     file.writelines(newContent)
-     file.close()
-     return
+async def deleteEntry(database, key, event):
+     try:
+          cursor.execute(
+               sql.SQL("DELETE FROM {table} WHERE {column} = %s;").format(
+                    table = sql.Identifier(database),
+                    column = sql.Identifier(database, key)), [event[0]])
+          connection.commit()
+     except Exception as e:
+          logging.info("Error with deleting data: {}".format(e))
