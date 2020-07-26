@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
-async def processDate(date):
+async def processDateTime(date, time):
      if date == "today":
           year = datetime.now().date().year
           month = datetime.now().date().month
@@ -18,9 +18,6 @@ async def processDate(date):
           except:
                logging.info("Invalid date inputted: {}".format(date))
                raise ValueError
-     return (year, month, day)
-
-async def processTime(time):
      if time[-2:] == "AM":
           try:
                hours = time.split(":")[0]
@@ -49,7 +46,7 @@ async def processTime(time):
      except:
           logging.info("Invalid time minute value inputted: {}".format(time.split(":")[0]))
           raise ValueError
-     return (hours, minutes)
+     return datetime(year, month, day, hours, minutes)
 
 async def humanFormatEventTime(event):
      eventHours = int(event[event.find("[") + 1: event.find("]")].split()[3])
@@ -70,5 +67,5 @@ async def convertToDate(event):
      eventDay = int(event[event.find("[") + 1: event.find("]")].split()[2])
      eventTimeHours = int(event[event.find("[") + 1: event.find("]")].split()[3])
      eventTimeMinutes = int(event[event.find("[") + 1: event.find("]")].split()[4])
-     eventDateTime = datetime(eventYear, eventMonth, eventDay, eventTimeHours, eventTimeMinutes) + timedelta(hours = 4)
+     eventDateTime = datetime(eventYear, eventMonth, eventDay, eventTimeHours, eventTimeMinutes)
      return eventDateTime

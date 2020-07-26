@@ -56,33 +56,39 @@ async def on_message(message):
      elif message.content.startswith("!event"):
           try:
                event = await processEvent.processEventMessage(message)
-               logging.info("New event received: {}".format(event[0:-1]))
-               isNewEventNewestEvent = await filerw.appendNewEventToFile("events.txt", event)
-               if isNewEventNewestEvent == True:
+               logging.info("New event received: {}".format(event))
+               await filerw.insertEntry("events", event)
+               await filerw.setTime(event[4])
+               insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
+               newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
+               logging.info("Inserted event date: {}".format(insertedEventDate[0]))
+               logging.info("Earliest event date: {}".format(newestEventDate))
+               if insertedEventDate[0] == newestEventDate:
                     try:
                          await processEvent.cancelRunningEvent()
                          await processEvent.setTimerForClosestEvent()
                     except Exception as e:
-                         logging.info("Something went wrong appending the new event {}".format(e))
+                         logging.info("Something went wrong setting a timer for the new event {}".format(e))
           except ValueError:
                await message.channel.send("did you type everything in correctly?")
           except errors.RepetitionError:
                await message.channel.send("you already set this as an event")
           except Exception as e:
-               logging.info("Something went wrong appending the new event {}".format(e))
+               logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
                await message.channel.send("inputted")
      elif message.content.startswith("!recurringevent"):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
                for event in eventsList:
-                    isNewEventNewestEvent = await filerw.appendNewEventToFile("events.txt", event)
-                    if isNewEventNewestEvent == True:
+                    await filerw.insertEntry("events", event)
+                    newestEvent = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
+                    if event[3] == newestEvent[3]:
                          try:
                               await processEvent.cancelRunningEvent()
                               await processEvent.setTimerForClosestEvent()
                          except Exception as e:
-                              logging.info("Something went wrong waiting for the new event {}".format(e))
+                              logging.info("Something went wrong waiting for the new event: {}".format(e))
           except ValueError:
                await message.channel.send("did you type everything in correctly?")
           except errors.RepetitionError:
@@ -90,7 +96,7 @@ async def on_message(message):
           except errors.WrongCommandError:
                await message.channel.send("you should use !event instead for events occurring at a single time")
           except Exception as e:
-               logging.info("Something went wrong appending the new event {}".format(e))
+               logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
                await message.channel.send("inputted")
      elif message.content.startswith("!deleteevent"):
@@ -102,11 +108,11 @@ async def on_message(message):
                channel = client.get_channel(int(event[event.find("<") + 1: event.find(">")].split()[1]))
                await asyncio.create_task(channel.send("{} has been deleted".format(event[event.find("{") + 1: event.find("}")])))
           except Exception as e:
-               logging.info("Something went wrong appending the new event {}".format(e))
+               logging.info("Something went wrong deleting the new event {}".format(e))
                await asyncio.create_task(message.channel.send("something has gone wrong here"))
      elif message.content.startswith("!showevents"):
           try:
-               allEventsList = await filerw.readFile("events.txt")
+               allEventsList = await filerw.retrieveAllEntries("events")
                channelEventsList = []
                for event in allEventsList:
                     if event.find(str(message.channel.id)) != -1:

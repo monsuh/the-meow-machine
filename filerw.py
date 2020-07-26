@@ -5,10 +5,20 @@ from datetime import datetime, timedelta
 from setup import connection, cursor
 from psycopg2 import sql
 
-async def retrieveFirstEntry(database, key):
+logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
+
+async def setTime(tz):
+     command = sql.SQL('''SET TIMEZONE TO {timezone};''').format(
+               timezone = sql.Identifier(tz))
+     cursor.execute(command)
+
+async def retrieveFirstEntry(database, key, columns):
      try:
           cursor.execute(
-               sql.SQL('SELECT * FROM {table} ORDER BY {orderKey};').format(
+               sql.SQL('SELECT {columns} FROM {table} ORDER BY {orderKey};').format(
+                    columns = sql.SQL(', ').join(
+                         sql.Identifier(database, column) for column in columns    
+                    ), 
                     table = sql.Identifier(database), 
                     orderKey = sql.Identifier(database, key)))
           return cursor.fetchone()
@@ -24,49 +34,42 @@ async def retrieveAllEntries(database):
      except Exception as e:
           logging.info("Error with retrieving entries: {}".format(e))
 
-async def findEntries(database, searchTerms):
+async def findEntries(database, searchTerms, columns):
      try:
           command = sql.SQL(
                '''
                     SELECT {columns} 
                     FROM {table} 
                     WHERE {conditions}
-                    LIMIT 1
                ''').format(
                     columns = sql.SQL(', ').join(
-                         sql.Identifier(database, key) for key in searchTerms.keys()    
+                         sql.Identifier(database, column) for column in columns    
                     ),
                     table = sql.Identifier(database),
                     conditions = sql.SQL(' AND ').join(
                          sql.Composed([sql.Identifier(database, key), sql.SQL(" = "), sql.Placeholder()]) for key in searchTerms.keys()
                     )
                )
-          print(command.as_string(connection))
-          print(list(searchTerms.values()))
           cursor.execute(command, list(searchTerms.values()))
           return cursor.fetchall()
      except Exception as e:
           logging.info("Error with retrieving entries with matching keys: {}".format(e))
 
 async def insertEntry(database, entry):
-     commands = (
-          sql.SQL('''SET TIMEZONE TO {timezone};''').format(
-               timezone = sql.Identifier(entry[4])),
-          sql.SQL(
+     command = sql.SQL(
           '''
                INSERT INTO {table}
                VALUES (%s, %s, %s, %s);
           ''').format(
                table = sql.Identifier(database))
-     )
      try:
-          cursor.execute(commands[0])
+          await setTime(entry[4])
      except Exception as e:
           logging.info("Error with setting time zone: {}".format(e))
      else:
           try:
-               match = await findEntries("events", {"name" : entry[0], "channel" : entry[2], "datetime" : entry[3]})
-               if match != None:
+               matches = await findEntries("events", {"name" : entry[0], "channel" : entry[2], "datetime" : entry[3]}, ["name", "channel", "datetime"])
+               if len(matches) != 0:
                     raise errors.RepetitionError
           except errors.RepetitionError:
                logging.info("Entry already exists")
@@ -75,17 +78,19 @@ async def insertEntry(database, entry):
                logging.info("Error with retrieving matching entries: {}".format(e)) 
           else:
                try:
-                    cursor.execute(commands[1], (entry[0], entry[1], entry[2], entry[3]))
+                    cursor.execute(command, (entry[0], entry[1], entry[2], entry[3]))
                     connection.commit()
                except Exception as e:
                     logging.info("Error with inserting data: {}".format(e))
 
-async def deleteEntry(database, key, entry):
+async def deleteEntry(database, params):
      try:
           cursor.execute(
-               sql.SQL("DELETE FROM {table} WHERE {column} = %s;").format(
+               sql.SQL("DELETE FROM {table} WHERE {column};").format(
                     table = sql.Identifier(database),
-                    column = sql.Identifier(database, key)), [entry[0]])
+                    column = sql.SQL(' AND ').join(
+                         sql.Composed([sql.Identifier(database, key), sql.SQL(" = "), sql.Placeholder()]) for key in params.keys()
+                    )), list(params.values()))
           connection.commit()
      except Exception as e:
           logging.info("Error with deleting data: {}".format(e))

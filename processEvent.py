@@ -9,13 +9,16 @@ from setup import client
 from datetime import datetime, timedelta
 
 async def processEventMessage(message):
-     eventName = message.content[message.content.find("{"):message.content.find("}") + 1]
-     eventGuild = message.guild.id
-     eventChannel = message.channel.id
-     eventDateTime = message.content[message.content.find("[") + 1:message.content.find("]")]
-     eventDate = await formatdt.processDate(eventDateTime.split()[0])
-     eventTime = await formatdt.processTime(eventDateTime.split()[1])
-     event = "{} <{} {}> [{} {} {} {} {}]\n".format(eventName, eventGuild, eventChannel, eventDate[0], eventDate[1], eventDate[2], eventTime[0], eventTime[1])
+     eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
+     eventGuild = int(message.guild.id)
+     eventChannel = int(message.channel.id)
+     eventDateTimeRaw = message.content[message.content.find("[") + 1:message.content.find("]")]
+     eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1])
+     try:
+          eventTimeZone = eventDateTimeRaw.split()[2]
+     except IndexError:
+          eventTimeZone = "UTC"
+     event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
      return event
 
 async def processRecurringEventMessage(message):
@@ -41,34 +44,35 @@ async def processRecurringEventMessage(message):
      except Exception as e:
           logging.info("Recurring event time exception: {}".format(e))
      try:
-          interval = int(eventDateTime.split()[2])
+          eventTimeZone = eventDateTime.split()[2]
+     except IndexError:
+          eventTimeZone = "UTC"
+     try:
+          interval = int(eventDateTime.split()[3])
      except Exception as e:
-          logging.info("Invalid time interval inputted: {}".format(eventDateTime.split()[2]))
+          logging.info("Invalid time interval inputted: {}".format(eventDateTime.split()[3]))
           raise ValueError
-     eventStartDate = await formatdt.processDate(eventStartDate)
-     eventEndDate = await formatdt.processDate(eventEndDate)
-     eventStartTime = await formatdt.processTime(eventStartTime)
-     eventEndTime = await formatdt.processTime(eventEndTime)
-     eventEndDateTime = datetime(eventEndDate[0], eventEndDate[1], eventEndDate[2], eventEndTime[0], eventEndTime[1])
+     eventEndDateTime = await formatdt.processDateTime(eventEndDate, eventEndTime)
      logging.info("Final recurring event end date time: {}".format(eventEndDateTime))
-     eventDateTime = datetime(eventStartDate[0], eventStartDate[1], eventStartDate[2], eventStartTime[0], eventStartTime[1])
+     eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime)
      logging.info("Final recurring event start date time: {}".format(eventDateTime))
      eventList = []
      while eventDateTime < eventEndDateTime:
-          event = "{} <{} {}> [{} {} {} {} {}]\n".format(eventName, eventGuild, eventChannel, eventDateTime.year, eventDateTime.month, eventDateTime.day, eventDateTime.hour, eventDateTime.minute)
+          event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
           logging.info("New event: {}".format(event))
           eventList.append(event)
           eventDateTime = eventDateTime + timedelta(minutes = interval)
      return eventList
 
 async def setTimerForClosestEvent():
-     event = await filerw.readFirstLine("events.txt")
-     if event == "":
+     await filerw.setTime("UTC")
+     event = await filerw.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
+     if event == None:
           raise IndexError
      else:
-          logging.info("first line of file: {}".format(event[0:-1]))
+          logging.info("first entry: {}".format(event))
           task = asyncio.create_task(sendReminder(event))
-          logging.info("setting timer for {}".format(event[0:-1]))
+          logging.info("setting timer for {}".format(event[0]))
           task.set_name("event timer")
           return task
 
@@ -83,30 +87,17 @@ async def cancelRunningEvent():
           logging.info("no currently running tasks")
      #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
 
-async def deleteEvent(fileName, simultaneousEvents):
-     eventsList = await filerw.readFile(fileName)
-     remainingEvents = []
-     for i in range (0, len(eventsList), 1):
-          if eventsList[i] not in simultaneousEvents:
-               remainingEvents.append(eventsList[i])
-     await filerw.overWriteFile(fileName, remainingEvents)
+async def deleteEvent(database, simultaneousEvents):
+     for event in simultaneousEvents:
+          await filerw.deleteEntry(database, {"name" : event[0], "channel" : event[1], "datetime" : event[2]})
 
 async def findSimultaneousEvents(originalEvent):
      logging.info("Finding simultaneous events")
-     eventsList = await filerw.readFile("events.txt")
-     eventsList = eventsList[1:]
-     simultaneousEvents = []
-     simultaneousEvents.append(originalEvent)
-     referenceDateTime = originalEvent[originalEvent.find("[") + 1: originalEvent.find("]")]
-     for event in eventsList:
-          if event[event.find("[") + 1: event.find("]")] == referenceDateTime:
-               simultaneousEvents.append(event)
-          else:
-               break
+     simultaneousEvents = await filerw.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime"])
      return simultaneousEvents
 
 async def findWaitTime(event):
-     eventDateTime = await formatdt.convertToDate(event) + timedelta(seconds = 6)
+     eventDateTime = event[2].replace(tzinfo=None) + timedelta(seconds = 6)
      currentDateTime = datetime.utcnow()
      return (eventDateTime - currentDateTime).total_seconds()
 
@@ -114,24 +105,23 @@ async def sendReminder(referenceEvent):
      simultaneousEvents = await findSimultaneousEvents(referenceEvent)
      logging.info("These are events happening simultaneously: {}".format(simultaneousEvents))
      waitTime = await findWaitTime(referenceEvent)
-     logging.info("wait time for {} is {} s".format(referenceEvent[0:-1], waitTime))
+     logging.info("wait time for {} is {} s".format(referenceEvent[0], waitTime))
      if waitTime > 0:
           await asyncio.sleep(waitTime)
           for event in simultaneousEvents:
                #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-               channel = client.get_channel(int(event[event.find("<") + 1: event.find(">")].split()[1]))
-               eventName = event[event.find("{") + 1: event.find("}")]
+               channel = client.get_channel(int(event[1]))
+               eventName = event[0]
                await channel.send("hey guys {} is happening now!".format(eventName))
-               #return (guild, channel, eventName)
      else:
           for event in simultaneousEvents:
                #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-               channel = client.get_channel(int(event[event.find("<") + 1: event.find(">")].split()[1]))
-               eventName = event[event.find("{") + 1: event.find("}")]
-               eventTime = await formatdt.humanFormatEventTime(event)
-               await channel.send("hey guys we missed {} at {}:{}{}".format(eventName, str(eventTime[0]), eventTime[1], eventTime[2]))
-               #return (guild, channel, eventName, eventTime)
-     await deleteEvent("events.txt", simultaneousEvents)
+               channel = client.get_channel(int(event[1]))
+               eventName = event[0]
+               #eventTime = await formatdt.humanFormatEventTime(event)
+               #await channel.send("hey guys we missed {} at {}:{}{}".format(eventName, str(eventTime[0]), eventTime[1], eventTime[2]))
+               await channel.send("hey guys we missed {}!".format(eventName))
+     await deleteEvent("events", simultaneousEvents)
      await cancelRunningEvent()
      try:
           await setTimerForClosestEvent()
