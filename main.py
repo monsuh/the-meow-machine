@@ -60,8 +60,8 @@ async def on_message(message):
                await filerw.insertEntry("events", event)
                await filerw.setTime(event[4])
                insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
-               newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
                logging.info("Inserted event date: {}".format(insertedEventDate[0]))
+               newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
                logging.info("Earliest event date: {}".format(newestEventDate))
                if insertedEventDate[0] == newestEventDate:
                     try:
@@ -82,8 +82,12 @@ async def on_message(message):
                eventsList = await processEvent.processRecurringEventMessage(message)
                for event in eventsList:
                     await filerw.insertEntry("events", event)
-                    newestEvent = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
-                    if event[3] == newestEvent[3]:
+                    await filerw.setTime(event[4])
+                    insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
+                    logging.info("Inserted event date: {}".format(insertedEventDate[0]))
+                    newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
+                    logging.info("Earliest event date: {}".format(newestEventDate))
+                    if insertedEventDate[0] == newestEventDate:
                          try:
                               await processEvent.cancelRunningEvent()
                               await processEvent.setTimerForClosestEvent()
