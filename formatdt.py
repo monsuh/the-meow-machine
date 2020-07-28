@@ -34,6 +34,8 @@ async def processDateTime(date, time, timezone):
      if time[-2:] == "AM":
           try:
                hours = int(time.split(":")[0])
+               if hours == 12:
+                    hours = 0
                if hours > 12 or hours < 0:
                     raise ValueError
           except:
@@ -43,9 +45,7 @@ async def processDateTime(date, time, timezone):
           try:
                hours = int(time.split(":")[0])
                if hours < 12:
-                    hours = int(time.split(":")[0]) + 12
-               elif hours == 12:
-                    hours = int(time.split(":")[0])
+                    hours = hours + 12
                if hours > 23 or hours < 12:
                     raise ValueError
           except:
@@ -64,24 +64,19 @@ async def processDateTime(date, time, timezone):
           raise ValueError
      return datetime(year, month, day, hours, minutes)
 
-async def humanFormatEventTime(event):
-     eventHours = int(event[event.find("[") + 1: event.find("]")].split()[3])
-     eventMeridian = "0"
-     if eventHours < 12:
+async def humanFormatEventDateTime(event):
+     eventYear = event[1].date().year
+     eventMonth = event[1].date().month
+     eventDay = event[1].date().day
+     eventHour = event[1].hour
+     logging.info("Event hours: {}".format(eventHour))
+     eventMeridian = ""
+     if eventHour < 12:
           eventMeridian = "AM"
      else:
-          eventHours = eventHours - 12
+          eventHour = eventHour - 12
           eventMeridian = "PM"
-     eventMinutes = event[event.find("[") + 1: event.find("]")].split()[4]
-     if int(eventMinutes) < 10:
-          eventMinutes = "0{}".format(eventMinutes)
-     return (eventHours, eventMinutes, eventMeridian)
-
-async def convertToDate(event):
-     eventYear = int(event[event.find("[") + 1: event.find("]")].split()[0])
-     eventMonth = int(event[event.find("[") + 1: event.find("]")].split()[1])
-     eventDay = int(event[event.find("[") + 1: event.find("]")].split()[2])
-     eventTimeHours = int(event[event.find("[") + 1: event.find("]")].split()[3])
-     eventTimeMinutes = int(event[event.find("[") + 1: event.find("]")].split()[4])
-     eventDateTime = datetime(eventYear, eventMonth, eventDay, eventTimeHours, eventTimeMinutes)
-     return eventDateTime
+     eventMinute = event[1].minute
+     if eventMinute < 10:
+          eventMinute = "0{}".format(eventMinute)
+     return (eventYear, eventMonth, eventDay, eventHour, eventMinute, eventMeridian)

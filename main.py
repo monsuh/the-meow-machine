@@ -106,34 +106,34 @@ async def on_message(message):
      elif message.content.startswith("!deleteevent"):
           try:
                event = await processEvent.processEventMessage(message)
-               await processEvent.deleteEvent("events.txt", event)
+               logging.info("name: {}, channel: {}, datetime: {}".format(event[0], event[2], event[3]))
+               await filerw.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
                await processEvent.cancelRunningEvent()
                await processEvent.setTimerForClosestEvent()
-               channel = client.get_channel(int(event[event.find("<") + 1: event.find(">")].split()[1]))
-               await asyncio.create_task(channel.send("{} has been deleted".format(event[event.find("{") + 1: event.find("}")])))
+               channel = client.get_channel(event[2])
+               await channel.send("{} has been deleted".format(event[0]))
           except Exception as e:
                logging.info("Something went wrong deleting the new event {}".format(e))
-               await asyncio.create_task(message.channel.send("something has gone wrong here"))
+               await message.channel.send("something has gone wrong here")
      elif message.content.startswith("!showevents"):
           try:
-               allEventsList = await filerw.retrieveAllEntries("events")
+               allEventsList = await filerw.findEntries("events", {"channel": message.channel.id}, ["name", "datetime"])
                channelEventsList = []
                for event in allEventsList:
-                    if event.find(str(message.channel.id)) != -1:
-                         eventTime = await formatdt.humanFormatEventTime(event)
-                         formattedEvent = "{} at {}:{}{}\n".format(event[event.find("{") + 1:event.find("}")], str(eventTime[0]), eventTime[1], eventTime[2])
-                         channelEventsList.append(formattedEvent)
+                    eventTime = await formatdt.humanFormatEventDateTime(event)
+                    formattedEvent = "{} at {}/{}/{} {}:{}{} UTC\n".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5]) #change to reflect event timezone
+                    channelEventsList.append(formattedEvent)
                logging.info(channelEventsList)
                if len(channelEventsList) == 0:
-                    await asyncio.create_task(message.channel.send("You have no events scheduled."))
+                    await message.channel.send("You have no events scheduled.")
                else:
                     channelEventsText = ""
                     for event in channelEventsList:
                          channelEventsText = channelEventsText + event
-                    await asyncio.create_task(message.channel.send("Please note that events are channel specific:\n{}".format(channelEventsText)))
+                    await message.channel.send("Please note that events are channel specific:\n{}".format(channelEventsText))
           except Exception as e:
-               logging.info("Something went wrong appending the new event {}".format(e))
-               await asyncio.create_task(message.channel.send("something has gone wrong here"))
+               logging.info("Something went wrong showing event {}".format(e))
+               await message.channel.send("something has gone wrong here")
      if message.author == client.user:
           return
      elif message.content.lower().find("sippy") != -1:
