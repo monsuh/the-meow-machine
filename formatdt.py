@@ -8,19 +8,21 @@ async def processDateTime(date, time, timezone):
                await filerw.setTime(timezone)
           except:
                raise ValueError
-          currentDateTime = datetime.strptime(await filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
-          year = currentDateTime.date().year
-          month = currentDateTime.date().month
-          day = currentDateTime.date().day
+          currentDateTime = await filerw.retrieveCurrentTime()
+          logging.info("Current date in local time: {}".format(currentDateTime))
+          year = currentDateTime[0].date().year
+          month = currentDateTime[0].date().month
+          day = currentDateTime[0].date().day
      elif date == "tomorrow":
           try:
                await filerw.setTime(timezone)
           except:
                raise ValueError
-          currentDateTime = datetime.strptime(await filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
-          year = (datetime.now() + timedelta(days = 1)).date().year
-          month = (datetime.now() + timedelta(days = 1)).date().month
-          day = (datetime.now() + timedelta(days = 1)).date().day
+          currentDateTime = await filerw.retrieveCurrentTime()
+          logging.info("Current date in local time: {}".format(currentDateTime))
+          year = (currentDateTime[0] + timedelta(days = 1)).date().year
+          month = (currentDateTime[0] + timedelta(days = 1)).date().month
+          day = (currentDateTime[0] + timedelta(days = 1)).date().day
      else:
           try:
                year = date.split("/")[0]
