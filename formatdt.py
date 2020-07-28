@@ -1,12 +1,23 @@
 import logging
+import filerw
 from datetime import datetime, timedelta
 
-async def processDateTime(date, time):
+async def processDateTime(date, time, timezone):
      if date == "today":
-          year = datetime.now().date().year
-          month = datetime.now().date().month
-          day = datetime.now().date().day
+          try:
+               await filerw.setTime(timezone)
+          except:
+               raise ValueError
+          currentDateTime = datetime.strptime(filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
+          year = currentDateTime.date().year
+          month = currentDateTime.date().month
+          day = currentDateTime.date().day
      elif date == "tomorrow":
+          try:
+               await filerw.setTime(timezone)
+          except:
+               raise ValueError
+          currentDateTime = datetime.strptime(filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
           year = (datetime.now() + timedelta(days = 1)).date().year
           month = (datetime.now() + timedelta(days = 1)).date().month
           day = (datetime.now() + timedelta(days = 1)).date().day

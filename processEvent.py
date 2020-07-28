@@ -13,11 +13,11 @@ async def processEventMessage(message):
      eventGuild = int(message.guild.id)
      eventChannel = int(message.channel.id)
      eventDateTimeRaw = message.content[message.content.find("[") + 1:message.content.find("]")]
-     eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1])
      try:
           eventTimeZone = eventDateTimeRaw.split()[2]
      except IndexError:
-          eventTimeZone = "UTC"
+          eventTimeZone = "UTC" #subject to change
+     eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1], eventTimeZone)
      event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
      return event
 
@@ -52,9 +52,9 @@ async def processRecurringEventMessage(message):
      except Exception as e:
           logging.info("Invalid time interval inputted: {}".format(eventDateTime.split()[3]))
           raise ValueError
-     eventEndDateTime = await formatdt.processDateTime(eventEndDate, eventEndTime)
+     eventEndDateTime = await formatdt.processDateTime(eventEndDate, eventEndTime, eventTimeZone)
      logging.info("Final recurring event end date time: {}".format(eventEndDateTime))
-     eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime)
+     eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime, eventTimeZone)
      logging.info("Final recurring event start date time: {}".format(eventDateTime))
      eventList = []
      while eventDateTime < eventEndDateTime:

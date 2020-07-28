@@ -12,6 +12,11 @@ async def setTime(tz):
                timezone = sql.Identifier(tz))
      cursor.execute(command)
 
+async def retrieveCurrentTime():
+     command = sql.SQL("SELECT LOCALTIMESTAMP")
+     cursor.execute(command)
+     return cursor.fetchone()
+
 async def retrieveFirstEntry(database, key, columns):
      try:
           cursor.execute(
