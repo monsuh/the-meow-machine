@@ -25,9 +25,9 @@ async def processDateTime(date, time, timezone):
           day = (currentDateTime[0] + timedelta(days = 1)).date().day
      else:
           try:
-               year = date.split("/")[0]
-               month = date.split("/")[1]
-               day = date.split("/")[2]
+               year = int(date.split("/")[0])
+               month = int(date.split("/")[1])
+               day = int(date.split("/")[2])
           except:
                logging.info("Invalid date inputted: {}".format(date))
                raise ValueError
