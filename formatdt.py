@@ -33,8 +33,7 @@ async def processDateTime(date, time, timezone):
                raise ValueError
      if time[-2:] == "AM":
           try:
-               hours = time.split(":")[0]
-               hours = int(hours)
+               hours = int(time.split(":")[0])
                if hours > 12 or hours < 0:
                     raise ValueError
           except:
@@ -42,7 +41,11 @@ async def processDateTime(date, time, timezone):
                raise ValueError
      elif time[-2:] == "PM":
           try:
-               hours = int(time.split(":")[0]) + 12
+               hours = int(time.split(":")[0])
+               if hours < 12:
+                    hours = int(time.split(":")[0]) + 12
+               elif hours == 12:
+                    hours = int(time.split(":")[0])
                if hours > 23 or hours < 12:
                     raise ValueError
           except:
