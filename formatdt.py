@@ -8,7 +8,7 @@ async def processDateTime(date, time, timezone):
                await filerw.setTime(timezone)
           except:
                raise ValueError
-          currentDateTime = datetime.strptime(filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
+          currentDateTime = datetime.strptime(await filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
           year = currentDateTime.date().year
           month = currentDateTime.date().month
           day = currentDateTime.date().day
@@ -17,7 +17,7 @@ async def processDateTime(date, time, timezone):
                await filerw.setTime(timezone)
           except:
                raise ValueError
-          currentDateTime = datetime.strptime(filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
+          currentDateTime = datetime.strptime(await filerw.retrieveCurrentTime().split()[0], "%Y-%m-%d")
           year = (datetime.now() + timedelta(days = 1)).date().year
           month = (datetime.now() + timedelta(days = 1)).date().month
           day = (datetime.now() + timedelta(days = 1)).date().day
