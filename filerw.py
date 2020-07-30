@@ -64,7 +64,7 @@ async def insertEntry(database, entry):
      command = sql.SQL(
           '''
                INSERT INTO {table}
-               VALUES (%s, %s, %s, %s);
+               VALUES (%s, %s, %s, %s, %s);
           ''').format(
                table = sql.Identifier(database))
      try:
@@ -83,7 +83,7 @@ async def insertEntry(database, entry):
                logging.info("Error with retrieving matching entries: {}".format(e)) 
           else:
                try:
-                    cursor.execute(command, (entry[0], entry[1], entry[2], entry[3]))
+                    cursor.execute(command, (entry[0], entry[1], entry[2], entry[3], entry[4]))
                     connection.commit()
                except Exception as e:
                     logging.info("Error with inserting data: {}".format(e))
