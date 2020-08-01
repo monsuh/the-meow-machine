@@ -64,9 +64,16 @@ async def insertEntry(database, entry):
      command = sql.SQL(
           '''
                INSERT INTO {table}
-               VALUES (%s, %s, %s, %s, %s);
+               VALUES ({values});
           ''').format(
-               table = sql.Identifier(database))
+               table = sql.Identifier(database),
+               values = sql.SQL(",").join(
+                    sql.Placeholder() for property in entry
+               ))
+     cursor.execute(command, entry)
+     connection.commit()
+
+async def insertEvent(entry):
      try:
           await setTime(entry[4])
      except Exception as e:
@@ -83,8 +90,7 @@ async def insertEntry(database, entry):
                logging.info("Error with retrieving matching entries: {}".format(e)) 
           else:
                try:
-                    cursor.execute(command, (entry[0], entry[1], entry[2], entry[3], entry[4]))
-                    connection.commit()
+                    await insertEntry("events", entry)
                except Exception as e:
                     logging.info("Error with inserting data: {}".format(e))
 
