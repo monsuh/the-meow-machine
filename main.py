@@ -18,7 +18,7 @@ from pathlib import Path
 @client.event
 async def on_ready():
      await client.change_presence(activity=discord.Game(name='!help'))
-     logging.disable()
+     #logging.disable()
      logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
      logging.info("We online boys")
      try:
@@ -57,7 +57,7 @@ async def on_message(message):
           try:
                event = await processEvent.processEventMessage(message)
                logging.info("New event received: {}".format(event))
-               await filerw.insertEntry("events", event)
+               await filerw.insertEvent(event)
                await filerw.setTime(event[4])
                insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
                logging.info("Inserted event date: {}".format(insertedEventDate[0]))
@@ -81,7 +81,7 @@ async def on_message(message):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
                for event in eventsList:
-                    await filerw.insertEntry("events", event)
+                    await filerw.insertEvent(event)
                     await filerw.setTime(event[4])
                     insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
                     logging.info("Inserted event date: {}".format(insertedEventDate[0]))
@@ -134,6 +134,15 @@ async def on_message(message):
           except Exception as e:
                logging.info("Something went wrong showing event {}".format(e))
                await message.channel.send("something has gone wrong here")
+     elif message.content.startswith("!settimezone"):
+          try:
+               timezone = message.content.split()[1]
+               guild = message.guild.id
+               channel = message.channel.id
+               logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, timezone))
+               await filerw.insertEntry("channel_timezones", (guild, channel, timezone))
+          except Exception as e:
+               logging.info("Something went wrong saving timezone {}".format(e))
      if message.author == client.user:
           return
      elif message.content.lower().find("sippy") != -1:
