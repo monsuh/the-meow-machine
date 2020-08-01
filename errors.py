@@ -3,3 +3,6 @@ class RepetitionError(Exception):
 
 class WrongCommandError(Exception):
      pass
+
+class EventTooEarlyError(Exception):
+     pass

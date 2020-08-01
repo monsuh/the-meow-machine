@@ -57,6 +57,11 @@ async def on_message(message):
           try:
                event = await processEvent.processEventMessage(message)
                logging.info("New event received: {}".format(event))
+               await filerw.setTime(event[4])
+               currentTime = await filerw.retrieveCurrentTime()
+               logging.info("Current time: {}".format(currentTime))
+               if currentTime[0] > event[3]:
+                    raise errors.EventTooEarlyError
                await filerw.insertEvent(event)
                await filerw.setTime(event[4])
                insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
@@ -69,6 +74,9 @@ async def on_message(message):
                          await processEvent.setTimerForClosestEvent()
                     except Exception as e:
                          logging.info("Something went wrong setting a timer for the new event {}".format(e))
+          except errors.EventTooEarlyError:
+               logging.info("ERROR: Event time set before current time")
+               await message.channel.send("you are scheduling this event to occur before the current time. don't.")
           except ValueError:
                await message.channel.send("did you type everything in correctly?")
           except errors.RepetitionError:
