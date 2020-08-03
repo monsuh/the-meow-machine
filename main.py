@@ -18,7 +18,7 @@ from pathlib import Path
 @client.event
 async def on_ready():
      await client.change_presence(activity=discord.Game(name='!help'))
-     logging.disable()
+     #logging.disable()
      logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
      logging.info("We online boys")
      try:
@@ -67,6 +67,9 @@ async def on_message(message):
                await message.channel.send("did you type everything in correctly?")
           except errors.RepetitionError:
                await message.channel.send("you already set this as an event")
+          except errors.NoTimeZoneError:
+               logging.info("ERROR: No specified timezone")
+               await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone and use !timezones for a list of valid timezones.")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
