@@ -22,7 +22,7 @@ async def processEventMessage(message):
      return event
 
 async def processRecurringEventMessage(message):
-     eventName = message.content[message.content.find("{"):message.content.find("}") + 1]
+     eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
      eventGuild = message.guild.id
      eventChannel = message.channel.id
      eventDateTime = message.content[message.content.find("[") + 1:message.content.find("]")]
