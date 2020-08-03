@@ -6,17 +6,32 @@ import formatdt
 import discord
 
 from setup import client
+from pytz import timezone
 from datetime import datetime, timedelta
 
 async def processEventMessage(message):
-     eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
-     eventGuild = int(message.guild.id)
-     eventChannel = int(message.channel.id)
-     eventDateTimeRaw = message.content[message.content.find("[") + 1:message.content.find("]")]
+     try:
+          eventGuild = int(message.guild.id)
+          eventChannel = int(message.channel.id)
+     except Exception as e:
+          logging.info("Event guild/channel id exception: {}".format(e))
+          raise ValueError
+     try:
+          eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
+     except Exception as e:
+          logging.info("Event name exception: {}".format(e))
+          raise ValueError
+     try:
+          eventDateTimeRaw = message.content[message.content.find("[") + 1:message.content.find("]")]
+     except Exception as e:
+          logging.info("Event date time exception: {}".format(e))
+          raise ValueError
      try:
           eventTimeZone = eventDateTimeRaw.split()[2]
      except IndexError:
           eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          if len(eventTimeZone) == 0:
+               raise errors.NoTimeZoneError
           logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
           eventTimeZone = eventTimeZone[0][0]
      eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1], eventTimeZone)
@@ -24,10 +39,27 @@ async def processEventMessage(message):
      return event
 
 async def processRecurringEventMessage(message):
-     eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
-     eventGuild = message.guild.id
-     eventChannel = message.channel.id
-     eventDateTime = message.content[message.content.find("[") + 1:message.content.find("]")]
+     try:
+          eventGuild = int(message.guild.id)
+          eventChannel = int(message.channel.id)
+     except Exception as e:
+          logging.info("Event guild/channel id exception: {}".format(e))
+          raise ValueError
+     try:
+          eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
+     except Exception as e:
+          logging.info("Event name exception: {}".format(e))
+          raise ValueError
+     try:
+          eventDateTime = message.content[message.content.find("[") + 1:message.content.find("]")]
+     except Exception as e:
+          logging.info("Event date time exception: {}".format(e))
+          raise ValueError
+     try:
+          eventInterval = int(message.content[message.content.find("<") + 1:message.content.find(">")])
+     except Exception as e:
+          logging.info("Event interval exception: {}".format(e))
+          raise ValueError
      try:
           eventStartDate = eventDateTime.split()[0].split("-")[0]
           eventEndDate = eventDateTime.split()[0].split("-")[1]
@@ -37,6 +69,7 @@ async def processRecurringEventMessage(message):
           eventEndDate = eventDateTime.split()[0]
      except Exception as e:
           logging.info("Recurring event date exception: {}".format(e))
+          raise ValueError
      try:
           eventStartTime = eventDateTime.split()[1].split("-")[0]
           eventEndTime = eventDateTime.split()[1].split("-")[1]
@@ -45,28 +78,48 @@ async def processRecurringEventMessage(message):
           raise errors.WrongCommandError
      except Exception as e:
           logging.info("Recurring event time exception: {}".format(e))
+          raise ValueError
      try:
           eventTimeZone = eventDateTime.split()[2]
      except IndexError:
           eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          if len(eventTimeZone) == 0:
+               raise errors.NoTimeZoneError
           logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
           eventTimeZone = eventTimeZone[0][0]
-     try:
-          interval = int(eventDateTime.split()[3])
-     except Exception as e:
-          logging.info("Invalid time interval inputted: {}".format(eventDateTime.split()[3]))
-          raise ValueError
      eventEndDateTime = await formatdt.processDateTime(eventEndDate, eventEndTime, eventTimeZone)
      logging.info("Final recurring event end date time: {}".format(eventEndDateTime))
      eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime, eventTimeZone)
      logging.info("Final recurring event start date time: {}".format(eventDateTime))
+     await ensureValidTime(eventTimeZone, eventDateTime)
      eventList = []
      while eventDateTime < eventEndDateTime:
           event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
           logging.info("New event: {}".format(event))
           eventList.append(event)
-          eventDateTime = eventDateTime + timedelta(minutes = interval)
+          eventDateTime = eventDateTime + timedelta(minutes = eventInterval)
      return eventList
+
+async def ensureValidTime(eventTz, eventDateTime):
+     utc = timezone("UTC")
+     eventTimeZone = timezone(eventTz)
+     currentDateTime = utc.localize(datetime.utcnow()).astimezone(eventTimeZone)
+     logging.info("Current date and time: {}".format(currentDateTime))
+     logging.info("Inserted event datetime: {}".format(eventDateTime))
+     if currentDateTime > eventDateTime:
+          raise errors.EventTooEarlyError
+
+async def determineNewestEventAndSetTimer(event):
+     newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
+     newestEventDate = newestEventDate[0].astimezone(timezone(event[4]))
+     logging.info("Earliest event date: {}".format(newestEventDate))
+     if event[3] == newestEventDate:
+          try:
+               logging.info("{} has most imminent deadline".format(event[0]))
+               await cancelRunningEvent()
+               await setTimerForClosestEvent()
+          except Exception as e:
+               logging.info("Something went wrong setting a timer for the new event {}".format(e))
 
 async def setTimerForClosestEvent():
      await filerw.setTime("UTC")

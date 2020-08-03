@@ -6,3 +6,6 @@ class WrongCommandError(Exception):
 
 class EventTooEarlyError(Exception):
      pass
+
+class NoTimeZoneError(Exception):
+     pass

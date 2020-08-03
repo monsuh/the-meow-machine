@@ -57,23 +57,9 @@ async def on_message(message):
           try:
                event = await processEvent.processEventMessage(message)
                logging.info("New event received: {}".format(event))
-               await filerw.setTime(event[4])
-               currentTime = await filerw.retrieveCurrentTime()
-               logging.info("Current time: {}".format(currentTime))
-               if currentTime[0] > event[3]:
-                    raise errors.EventTooEarlyError
+               await processEvent.ensureValidTime(event[4], event[3])
                await filerw.insertEvent(event)
-               await filerw.setTime(event[4])
-               insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
-               logging.info("Inserted event date: {}".format(insertedEventDate[0]))
-               newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
-               logging.info("Earliest event date: {}".format(newestEventDate))
-               if insertedEventDate[0] == newestEventDate:
-                    try:
-                         await processEvent.cancelRunningEvent()
-                         await processEvent.setTimerForClosestEvent()
-                    except Exception as e:
-                         logging.info("Something went wrong setting a timer for the new event {}".format(e))
+               await processEvent.determineNewestEventAndSetTimer(event)
           except errors.EventTooEarlyError:
                logging.info("ERROR: Event time set before current time")
                await message.channel.send("you are scheduling this event to occur before the current time. don't.")
@@ -88,25 +74,24 @@ async def on_message(message):
      elif message.content.startswith("!recurringevent"):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
-               for event in eventsList:
-                    await filerw.insertEvent(event)
-                    await filerw.setTime(event[4])
-                    insertedEventDate = await filerw.findEntries("events", {"datetime" : event[3]}, ["datetime"])
-                    logging.info("Inserted event date: {}".format(insertedEventDate[0]))
-                    newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
-                    logging.info("Earliest event date: {}".format(newestEventDate))
-                    if insertedEventDate[0] == newestEventDate:
-                         try:
-                              await processEvent.cancelRunningEvent()
-                              await processEvent.setTimerForClosestEvent()
-                         except Exception as e:
-                              logging.info("Something went wrong waiting for the new event: {}".format(e))
+               if len(eventsList) == 0:
+                    raise ValueError
+               else:
+                    for event in eventsList:
+                         await filerw.insertEvent(event)
+                    await processEvent.determineNewestEventAndSetTimer(eventsList[0])
           except ValueError:
                await message.channel.send("did you type everything in correctly?")
           except errors.RepetitionError:
                await message.channel.send("you already set this as an event")
           except errors.WrongCommandError:
                await message.channel.send("you should use !event instead for events occurring at a single time")
+          except errors.EventTooEarlyError:
+               logging.info("ERROR: Event time set before current time")
+               await message.channel.send("you are scheduling this event to occur before the current time. don't.")
+          except errors.NoTimeZoneError:
+               logging.info("ERROR: No specified timezone")
+               await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone and use !timezones for a list of valid timezones.")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
@@ -125,11 +110,11 @@ async def on_message(message):
                await message.channel.send("something has gone wrong deleting your event.")
      elif message.content.startswith("!showevents"):
           try:
-               allEventsList = await filerw.findEntries("events", {"channel": message.channel.id}, ["name", "datetime"])
+               allEventsList = await filerw.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
                channelEventsList = []
                for event in allEventsList:
                     eventTime = await formatdt.humanFormatEventDateTime(event)
-                    formattedEvent = "{} at {}/{}/{} {}:{}{} UTC\n".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5]) #change to reflect event timezone
+                    formattedEvent = "{} at {}/{}/{} {}:{}{} {}\n".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[2]) #change to reflect event timezone
                     channelEventsList.append(formattedEvent)
                logging.info(channelEventsList)
                if len(channelEventsList) == 0:
@@ -144,15 +129,15 @@ async def on_message(message):
                await message.channel.send("Something has gone wrong retrieving your channel events.")
      elif message.content.startswith("!settimezone"):
           try:
-               timezone = message.content.split()[1]
+               channelTimezone = message.content.split()[1]
                guild = message.guild.id
                channel = message.channel.id
-               logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, timezone))
-               await filerw.insertEntry("channel_timezones", (guild, channel, timezone))
+               logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, channelTimezone))
+               await filerw.insertEntry("channel_timezones", (guild, channel, channelTimezone))
           except Exception as e:
                logging.info("Something went wrong saving timezone {}".format(e))
           else:
-               await message.channel.send("The timezone has been set to {}".format(timezone))
+               await message.channel.send("The timezone has been set to {}".format(channelTimezone))
      if message.author == client.user:
           return
      elif message.content.lower().find("sippy") != -1:
