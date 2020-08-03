@@ -16,7 +16,9 @@ async def processEventMessage(message):
      try:
           eventTimeZone = eventDateTimeRaw.split()[2]
      except IndexError:
-          eventTimeZone = "UTC" #subject to change
+          eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
+          eventTimeZone = eventTimeZone[0][0]
      eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1], eventTimeZone)
      event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
      return event
@@ -46,7 +48,9 @@ async def processRecurringEventMessage(message):
      try:
           eventTimeZone = eventDateTime.split()[2]
      except IndexError:
-          eventTimeZone = "UTC"
+          eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
+          eventTimeZone = eventTimeZone[0][0]
      try:
           interval = int(eventDateTime.split()[3])
      except Exception as e:

@@ -122,7 +122,7 @@ async def on_message(message):
                await channel.send("{} has been deleted".format(event[0]))
           except Exception as e:
                logging.info("Something went wrong deleting the new event {}".format(e))
-               await message.channel.send("something has gone wrong here")
+               await message.channel.send("something has gone wrong deleting your event.")
      elif message.content.startswith("!showevents"):
           try:
                allEventsList = await filerw.findEntries("events", {"channel": message.channel.id}, ["name", "datetime"])
@@ -141,7 +141,7 @@ async def on_message(message):
                     await message.channel.send("Please note that events are channel specific:\n{}".format(channelEventsText))
           except Exception as e:
                logging.info("Something went wrong showing event {}".format(e))
-               await message.channel.send("something has gone wrong here")
+               await message.channel.send("Something has gone wrong retrieving your channel events.")
      elif message.content.startswith("!settimezone"):
           try:
                timezone = message.content.split()[1]
@@ -151,6 +151,8 @@ async def on_message(message):
                await filerw.insertEntry("channel_timezones", (guild, channel, timezone))
           except Exception as e:
                logging.info("Something went wrong saving timezone {}".format(e))
+          else:
+               await message.channel.send("The timezone has been set to {}".format(timezone))
      if message.author == client.user:
           return
      elif message.content.lower().find("sippy") != -1:
