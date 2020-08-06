@@ -109,7 +109,7 @@ async def ensureValidTime(eventTz, eventDateTime):
      if currentDateTime > eventDateTime:
           raise errors.EventTooEarlyError
 
-async def determineNewestEventAndSetTimer(event):
+async def determineIfNewestEventIsMostPertinent(event):
      newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
      newestEventDate = newestEventDate[0].astimezone(timezone(event[4]))
      logging.info("Earliest event date: {}".format(newestEventDate))
