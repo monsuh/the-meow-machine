@@ -68,7 +68,7 @@ async def insertEntry(database, entry):
           ''').format(
                table = sql.Identifier(database),
                values = sql.SQL(",").join(
-                    sql.Placeholder() for property in entry
+                    sql.Placeholder() for item in entry
                ))
      cursor.execute(command, entry)
      connection.commit()
@@ -94,6 +94,26 @@ async def insertEvent(entry):
                except Exception as e:
                     logging.info("Error with inserting data: {}".format(e))
 
+async def insertMultipleEvents(entriesList):
+     try:
+          await setTime(entriesList[0][4])
+     except Exception as e:
+          logging.info("Error with setting time zone: {}".format(e))
+     else:
+          try:
+               for entry in entriesList:
+                    matches = await findEntries("events", {"name" : entry[0], "channel" : entry[2], "datetime" : entry[3]}, ["name"])
+                    if len(matches) != 0:
+                         raise errors.RepetitionError
+          except errors.RepetitionError:
+               logging.info("Entry or entries already exist(s)")
+               raise errors.RepetitionError
+          else:
+               try:
+                    await insertEntry("events", entriesList)
+               except Exception as e:
+                    logging.info("Error with inserting data: {}".format(e))
+
 async def deleteEntry(database, params):
      try:
           cursor.execute(
@@ -105,3 +125,25 @@ async def deleteEntry(database, params):
           connection.commit()
      except Exception as e:
           logging.info("Error with deleting data: {}".format(e))
+
+async def updateEntry(database, updates, conditions):
+     command = sql.SQL(
+          '''
+               UPDATE {table}
+               SET {updateValues}
+               WHERE {updateConditions}
+          ''').format(
+               table = sql.Identifier(database),
+               updateValues = sql.SQL(',').join(
+                    sql.Composed([sql.Identifier(key), sql.SQL(" = "), sql.Placeholder()]) for key in updates.keys()
+               ),
+               updateConditions = sql.SQL(' AND ').join(
+                    sql.Composed([sql.Identifier(key), sql.SQL(" = "), sql.Placeholder()]) for key in conditions.keys()
+               )
+          )
+     try:
+          cursor.execute(command, list(updates.values()) + list(conditions.values()))
+          connection.commit()
+     except Exception as e:
+          logging.info("Error with updating data: {}".format(e))
+
