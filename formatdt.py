@@ -11,12 +11,12 @@ async def processDateTime(date, time, eventTz):
      except Exception as e:
           logging.info("Unable to retrieve current date: {}".format(e))
           raise ValueError
-     if date == "today":
+     if date.lower() == "today":
           logging.info("Current date in local time: {}".format(currentDateTime))
           year = currentDateTime.date().year
           month = currentDateTime.date().month
           day = currentDateTime.date().day
-     elif date == "tomorrow":
+     elif date.lower() == "tomorrow":
           logging.info("Current date in local time: {}".format(currentDateTime))
           year = (currentDateTime + timedelta(days = 1)).date().year
           month = (currentDateTime + timedelta(days = 1)).date().month
@@ -29,7 +29,7 @@ async def processDateTime(date, time, eventTz):
           except:
                logging.info("Invalid date inputted: {}".format(date))
                raise ValueError
-     if time[-2:] == "AM":
+     if time[-2:].upper() == "AM":
           try:
                hours = int(time.split(":")[0])
                if hours == 12:
@@ -39,7 +39,7 @@ async def processDateTime(date, time, eventTz):
           except:
                logging.info("Invalid time hour value inputted: {}".format(time.split(":")[0]))
                raise ValueError
-     elif time[-2:] == "PM":
+     elif time[-2:].upper() == "PM":
           try:
                hours = int(time.split(":")[0])
                if hours < 12:
