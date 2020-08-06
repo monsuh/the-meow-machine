@@ -9,3 +9,9 @@ class EventTooEarlyError(Exception):
 
 class NoTimeZoneError(Exception):
      pass
+
+class EventDoesNotExistError(Exception):
+     pass
+
+class TooManyEventsError(Exception):
+     pass
