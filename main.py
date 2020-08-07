@@ -33,7 +33,7 @@ async def on_message(message):
      elif message.content.startswith("!help"):
           profilePicURL = "https://cdn.discordapp.com/avatars/727349589870641243/d76f675a731663b4ff92db78c6093ff3.png?size=256" 
           helpMessage = discord.Embed(
-               description = "Type these into chat so that Sippy knows how to help you",
+               description = "Type these into chat so that Meow Machine (aka Sippy) knows how to help you",
                type = "rich", 
                colour = discord.Colour.dark_green()
           )
