@@ -17,13 +17,15 @@ from pathlib import Path
 @client.event
 async def on_ready():
      await client.change_presence(activity=discord.Game(name='!help'))
-     #logging.disable()
+     logging.disable()
      logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
      logging.info("We online boys")
      try:
           await processEvent.setTimerForClosestEvent()
      except IndexError:
           logging.info("no items in events list")
+     except Exception as e:
+          logging.info("Error with initializing: {}".format(e))
 
 @client.event
 async def on_message(message):
@@ -47,7 +49,7 @@ async def on_message(message):
           helpMessage.add_field(name = "!deleteevent", value = "Delete a singular event\n`{}`\nRefer to !event for formatting instructions for date, time, and timezone.".format(r"!deleteevent {name} [date time timezone]"), inline = False)
           helpMessage.add_field(name = "!deleterecurringevent", value = "Delete a recurring event\n`{}`\nRefer to !recurringevent for formatting instructions for date, time, and timezone.".format(r"!deleterecurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
           helpMessage.add_field(name = "!showevents", value = "See the events that you have set within a channel", inline = False)
-          helpMessage.set_footer(text = "made with love by churned milk")
+          helpMessage.set_footer(text = "If you think Sippy's doing a good job, make sure to let her know!")
           await message.channel.send(embed = helpMessage)
      elif message.content.startswith("!poke"):
           if len(message.mentions) != 0:
@@ -87,6 +89,8 @@ async def on_message(message):
           except errors.NoTimeZoneError:
                logging.info("ERROR: No specified timezone")
                await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone and use !timezones for a list of valid timezones.")
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
@@ -117,6 +121,8 @@ async def on_message(message):
           except errors.TooManyEventsError:
                logging.info("ERROR: Too many events to insert")
                await message.channel.send("whoa there bucko, that's too many events. i am just a little cat.")
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
@@ -136,6 +142,8 @@ async def on_message(message):
                     raise errors.EventDoesNotExistError
           except errors.EventDoesNotExistError:
                await message.channel.send("THOUGHT YOU COULD TRICK ME HUH? you are trying to delete an event that doesn't even exist.")
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong deleting the new event {}".format(e))
                await message.channel.send("something has gone wrong deleting your event.")
@@ -165,6 +173,8 @@ async def on_message(message):
                await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone. use !help to get a list of possible timezones.")
           except errors.EventDoesNotExistError:
                await message.channel.send("THOUGHT YOU COULD TRICK ME HUH? you are trying to delete a minimum of one event that doesn't exist.")
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
@@ -186,6 +196,8 @@ async def on_message(message):
                     for event in channelEventsList:
                          channelEventsText = channelEventsText + event
                     await message.channel.send("Please note that events are channel specific:\n{}".format(channelEventsText))
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong showing event {}".format(e))
                await message.channel.send("Something has gone wrong retrieving your channel events.")
@@ -203,6 +215,8 @@ async def on_message(message):
                else:
                     await databaseConn.updateEntry("channel_timezones", {"timezone" : channelTimezone}, {"channel" : channel})
                     logging.info("Previous channel timezone updated")
+          except errors.NoServerConnectionError:
+               await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong saving timezone {}".format(e))
           else:

@@ -15,3 +15,6 @@ class EventDoesNotExistError(Exception):
 
 class TooManyEventsError(Exception):
      pass
+
+class NoServerConnectionError(Exception):
+     pass

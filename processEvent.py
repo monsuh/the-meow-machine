@@ -28,11 +28,16 @@ async def processEventMessage(message):
      try:
           eventTimeZone = eventDateTimeRaw.split()[2]
      except IndexError:
-          eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
-          if len(eventTimeZone) == 0:
+          try:
+               eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+               if len(eventTimeZone) == 0:
+                    raise errors.NoTimeZoneError
+               logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
+               eventTimeZone = eventTimeZone[0][0]
+          except errors.NoTimeZoneError:
                raise errors.NoTimeZoneError
-          logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
-          eventTimeZone = eventTimeZone[0][0]
+          except errors.NoServerConnectionError:
+               raise errors.NoServerConnectionError
      eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1], eventTimeZone)
      event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
      return event
@@ -81,11 +86,16 @@ async def processRecurringEventMessage(message):
      try:
           eventTimeZone = eventDateTime.split()[2]
      except IndexError:
-          eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
-          if len(eventTimeZone) == 0:
+          try:
+               eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+               if len(eventTimeZone) == 0:
+                    raise errors.NoTimeZoneError
+               logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
+               eventTimeZone = eventTimeZone[0][0]
+          except errors.NoTimeZoneError:
                raise errors.NoTimeZoneError
-          logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
-          eventTimeZone = eventTimeZone[0][0]
+          except errors.NoServerConnectionError:
+               raise errors.NoServerConnectionError
      eventEndDateTime = await formatdt.processDateTime(eventEndDate, eventEndTime, eventTimeZone)
      logging.info("Final recurring event end date time: {}".format(eventEndDateTime))
      eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime, eventTimeZone)
@@ -109,28 +119,36 @@ async def ensureValidTime(eventTz, eventDateTime):
           raise errors.EventTooEarlyError
 
 async def determineIfNewestEventIsMostPertinent(event):
-     newestEventDate = await databaseConn.retrieveFirstEntry("events", "datetime", ["datetime"])
-     newestEventDate = newestEventDate[0].astimezone(timezone(event[4]))
-     logging.info("Earliest event date: {}".format(newestEventDate))
-     if event[3] == newestEventDate:
-          try:
-               logging.info("{} has most imminent deadline".format(event[0]))
-               await cancelRunningEvent()
-               await setTimerForClosestEvent()
-          except Exception as e:
-               logging.info("Something went wrong setting a timer for the new event {}".format(e))
+     try:
+          newestEventDate = await databaseConn.retrieveFirstEntry("events", "datetime", ["datetime"])
+          newestEventDate = newestEventDate[0].astimezone(timezone(event[4]))
+          logging.info("Earliest event date: {}".format(newestEventDate))
+          if event[3] == newestEventDate:
+               try:
+                    logging.info("{} has most imminent deadline".format(event[0]))
+                    await cancelRunningEvent()
+                    await setTimerForClosestEvent()
+               except errors.NoServerConnectionError:
+                    raise errors.NoServerConnectionError
+               except Exception as e:
+                    logging.info("Something went wrong setting a timer for the new event {}".format(e))
+     except errors.NoServerConnectionError:
+          raise errors.NoServerConnectionError
 
 async def setTimerForClosestEvent():
-     await databaseConn.setTime("UTC")
-     event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
-     if event == None:
-          raise IndexError
-     else:
-          logging.info("first entry: {}".format(event))
-          task = asyncio.create_task(sendReminder(event))
-          logging.info("setting timer for {}".format(event[0]))
-          task.set_name("event timer")
-          return task
+     try:
+          await databaseConn.setTime("UTC")
+          event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
+          if event == None:
+               raise IndexError
+          else:
+               logging.info("first entry: {}".format(event))
+               task = asyncio.create_task(sendReminder(event))
+               logging.info("setting timer for {}".format(event[0]))
+               task.set_name("event timer")
+               return task
+     except errors.NoServerConnectionError:
+          raise errors.NoServerConnectionError
 
 async def cancelRunningEvent():
      taskSet = asyncio.all_tasks()
@@ -141,7 +159,6 @@ async def cancelRunningEvent():
                break
      else:
           logging.info("no currently running tasks")
-     #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
 
 async def deleteEvent(database, simultaneousEvents):
      for event in simultaneousEvents:
@@ -158,34 +175,37 @@ async def findWaitTime(event):
      return (eventDateTime - currentDateTime).total_seconds()
 
 async def sendReminder(referenceEvent):
-     simultaneousEvents = await findSimultaneousEvents(referenceEvent)
-     logging.info("These are events happening simultaneously: {}".format(simultaneousEvents))
-     waitTime = await findWaitTime(referenceEvent)
-     logging.info("wait time for {} is {} s".format(referenceEvent[0], waitTime))
-     if waitTime > 0:
-          await asyncio.sleep(waitTime)
-          for event in simultaneousEvents:
-               #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-               channel = client.get_channel(int(event[1]))
-               eventName = event[0]
-               try:
-                    await channel.send("hey guys {} is happening now!".format(eventName))
-               except Exception as e:
-                    logging.info("Could not send reminder message: {}".format(e))
-     else:
-          for event in simultaneousEvents:
-               #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-               channel = client.get_channel(int(event[1]))
-               eventName = event[0]
-               #eventTime = await formatdt.humanFormatEventTime(event)
-               #await channel.send("hey guys we missed {} at {}:{}{}".format(eventName, str(eventTime[0]), eventTime[1], eventTime[2]))
-               try:
-                    await channel.send("hey guys we missed {}!".format(eventName))
-               except Exception as e:
-                    logging.info("Could not send reminder message: {}".format(e))
-     await deleteEvent("events", simultaneousEvents)
-     await cancelRunningEvent()
      try:
-          await setTimerForClosestEvent()
-     except IndexError:
-          logging.info("no items in events list")
+          simultaneousEvents = await findSimultaneousEvents(referenceEvent)
+          logging.info("These are events happening simultaneously: {}".format(simultaneousEvents))
+          waitTime = await findWaitTime(referenceEvent)
+          logging.info("wait time for {} is {} s".format(referenceEvent[0], waitTime))
+          if waitTime > 0:
+               await asyncio.sleep(waitTime)
+               for event in simultaneousEvents:
+                    #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
+                    channel = client.get_channel(int(event[1]))
+                    eventName = event[0]
+                    try:
+                         await channel.send("hey guys {} is happening now!".format(eventName))
+                    except Exception as e:
+                         logging.info("Could not send reminder message: {}".format(e))
+          else:
+               for event in simultaneousEvents:
+                    #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
+                    channel = client.get_channel(int(event[1]))
+                    eventName = event[0]
+                    #eventTime = await formatdt.humanFormatEventTime(event)
+                    #await channel.send("hey guys we missed {} at {}:{}{}".format(eventName, str(eventTime[0]), eventTime[1], eventTime[2]))
+                    try:
+                         await channel.send("hey guys we missed {}!".format(eventName))
+                    except Exception as e:
+                         logging.info("Could not send reminder message: {}".format(e))
+          await deleteEvent("events", simultaneousEvents)
+          await cancelRunningEvent()
+          try:
+               await setTimerForClosestEvent()
+          except IndexError:
+               logging.info("no items in events list")
+     except errors.NoServerConnectionError:
+          raise errors.NoServerConnectionError
