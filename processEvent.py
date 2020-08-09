@@ -11,9 +11,13 @@ from datetime import datetime, timedelta
 async def processEventMessage(message):
      try:
           eventGuild = int(message.guild.id)
+     except:
+          logging.info("No event guild, DM channel")
+          eventGuild = 0
+     try:
           eventChannel = int(message.channel.id)
      except Exception as e:
-          logging.info("Event guild/channel id exception: {}".format(e))
+          logging.info("Event channel id exception: {}".format(e))
           raise ValueError
      try:
           eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
@@ -45,6 +49,10 @@ async def processEventMessage(message):
 async def processRecurringEventMessage(message):
      try:
           eventGuild = int(message.guild.id)
+     except Exception as e:
+          logging.info("No event guild, is a DM a channel")
+          eventGuild = 0
+     try:
           eventChannel = int(message.channel.id)
      except Exception as e:
           logging.info("Event guild/channel id exception: {}".format(e))

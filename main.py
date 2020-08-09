@@ -204,7 +204,11 @@ async def on_message(message):
      elif message.content.startswith("!settimezone"):
           try:
                channelTimezone = message.content.split()[1]
-               guild = message.guild.id
+               try:
+                    guild = message.guild.id
+               except:
+                    logging.info("No guild, DM channel")
+                    guild = 0
                channel = message.channel.id
                await formatdt.testTimeZone(channelTimezone)
                logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, channelTimezone))
@@ -216,6 +220,8 @@ async def on_message(message):
                else:
                     await databaseConn.updateEntry("channel_timezones", {"timezone" : channelTimezone}, {"channel" : channel})
                     logging.info("Previous channel timezone updated")
+          except IndexError:
+               await message.channel.send("Make sure to indicate a timezone.")
           except errors.InvalidTimeZoneError:
                await message.channel.send("You inputted something that was not a timezone.")
           except errors.NoServerConnectionError:
