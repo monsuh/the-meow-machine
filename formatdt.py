@@ -1,4 +1,6 @@
+import errors
 import logging
+
 from pytz import timezone
 from datetime import datetime, timedelta
 
@@ -78,3 +80,10 @@ async def humanFormatEventDateTime(event):
      if eventMinute < 10:
           eventMinute = "0{}".format(eventMinute)
      return (eventYear, eventMonth, eventDay, eventHour, eventMinute, eventMeridian)
+
+async def testTimeZone(inputtedTimezone):
+     try:
+          timezone(inputtedTimezone)
+     except Exception as e:
+          logging.info("Error with user timezone: {}".format(e))
+          raise errors.InvalidTimeZoneError

@@ -10,6 +10,9 @@ class EventTooEarlyError(Exception):
 class NoTimeZoneError(Exception):
      pass
 
+class InvalidTimeZoneError(Exception):
+     pass
+
 class EventDoesNotExistError(Exception):
      pass
 
