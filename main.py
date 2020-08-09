@@ -6,11 +6,10 @@ import discord
 import asyncio
 import logging
 import errors
-import filerw
 import formatdt
 import processEvent
 
-from setup import client, discordToken, cursor
+from setup import client, discordToken, databaseConn
 from datetime import datetime, timedelta
 from random import randint
 from pathlib import Path
@@ -18,7 +17,7 @@ from pathlib import Path
 @client.event
 async def on_ready():
      await client.change_presence(activity=discord.Game(name='!help'))
-     logging.disable()
+     #logging.disable()
      logging.basicConfig(filename='console.log', filemode='w', level=logging.DEBUG, format=' %(asctime)s - %(levelname)s - %(message)s')
      logging.info("We online boys")
      try:
@@ -76,7 +75,7 @@ async def on_message(message):
                event = await processEvent.processEventMessage(message)
                logging.info("New event received: {}".format(event))
                await processEvent.ensureValidTime(event[4], event[3])
-               await filerw.insertEvent(event)
+               await databaseConn.insertEvent(event)
                await processEvent.determineIfNewestEventIsMostPertinent(event)
           except errors.EventTooEarlyError:
                logging.info("ERROR: Event time set before current time")
@@ -101,7 +100,7 @@ async def on_message(message):
                     raise errors.TooManyEventsError
                else:
                     for event in eventsList:
-                         await filerw.insertEvent(event)
+                         await databaseConn.insertEvent(event)
                     await processEvent.determineIfNewestEventIsMostPertinent(eventsList[0])
           except ValueError:
                await message.channel.send("did you type everything in correctly?")
@@ -126,9 +125,9 @@ async def on_message(message):
           try:
                event = await processEvent.processEventMessage(message)
                logging.info("name: {}, channel: {}, datetime: {}".format(event[0], event[2], event[3]))
-               eventToDelete = await filerw.findEntries("events", {"name": event[0], "channel": event[2], "datetime": event[3]}, ["name"])
+               eventToDelete = await databaseConn.findEntries("events", {"name": event[0], "channel": event[2], "datetime": event[3]}, ["name"])
                if len(eventToDelete) > 0:
-                    await filerw.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
+                    await databaseConn.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
                     await processEvent.cancelRunningEvent()
                     await processEvent.setTimerForClosestEvent()
                     channel = client.get_channel(event[2])
@@ -147,11 +146,11 @@ async def on_message(message):
                     raise ValueError
                else:
                     for event in eventsList:
-                         eventToDelete = await filerw.findEntries("events", {"name": event[0], "channel": event[2], "datetime": event[3]}, ["name"])
+                         eventToDelete = await databaseConn.findEntries("events", {"name": event[0], "channel": event[2], "datetime": event[3]}, ["name"])
                          if len(eventToDelete) == 0:
                               raise errors.EventDoesNotExistError
                     for event in eventsList:
-                         await filerw.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
+                         await databaseConn.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
                     await processEvent.cancelRunningEvent()
                     await processEvent.setTimerForClosestEvent()
           except ValueError:
@@ -173,7 +172,7 @@ async def on_message(message):
                await channel.send("set of recurring events named {} has been deleted".format(eventsList[0][0]))
      elif message.content.startswith("!showevents"):
           try:
-               allEventsList = await filerw.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
+               allEventsList = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
                channelEventsList = []
                for event in allEventsList:
                     eventTime = await formatdt.humanFormatEventDateTime(event)
@@ -196,13 +195,13 @@ async def on_message(message):
                guild = message.guild.id
                channel = message.channel.id
                logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, channelTimezone))
-               existingChannel = await filerw.findEntries("channel_timezones", {"channel" : channel}, ["timezone"])
+               existingChannel = await databaseConn.findEntries("channel_timezones", {"channel" : channel}, ["timezone"])
                logging.info("The database already has this value saved for channel {}: {}".format(channel, existingChannel))
                if len(existingChannel) == 0:
-                    await filerw.insertEntry("channel_timezones", (guild, channel, channelTimezone))
+                    await databaseConn.insertEntry("channel_timezones", (guild, channel, channelTimezone))
                     logging.info("New channel timezone added")
                else:
-                    await filerw.updateEntry("channel_timezones", {"timezone" : channelTimezone}, {"channel" : channel})
+                    await databaseConn.updateEntry("channel_timezones", {"timezone" : channelTimezone}, {"channel" : channel})
                     logging.info("Previous channel timezone updated")
           except Exception as e:
                logging.info("Something went wrong saving timezone {}".format(e))

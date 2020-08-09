@@ -1,11 +1,10 @@
 import asyncio
 import logging
 import errors
-import filerw
 import formatdt
 import discord
 
-from setup import client
+from setup import client, databaseConn
 from pytz import timezone
 from datetime import datetime, timedelta
 
@@ -29,7 +28,7 @@ async def processEventMessage(message):
      try:
           eventTimeZone = eventDateTimeRaw.split()[2]
      except IndexError:
-          eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
           if len(eventTimeZone) == 0:
                raise errors.NoTimeZoneError
           logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
@@ -82,7 +81,7 @@ async def processRecurringEventMessage(message):
      try:
           eventTimeZone = eventDateTime.split()[2]
      except IndexError:
-          eventTimeZone = await filerw.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
+          eventTimeZone = await databaseConn.findEntries("channel_timezones", {"channel" : eventChannel}, ["timezone"])
           if len(eventTimeZone) == 0:
                raise errors.NoTimeZoneError
           logging.info("Channel timezone: {}".format(eventTimeZone[0][0]))
@@ -110,7 +109,7 @@ async def ensureValidTime(eventTz, eventDateTime):
           raise errors.EventTooEarlyError
 
 async def determineIfNewestEventIsMostPertinent(event):
-     newestEventDate = await filerw.retrieveFirstEntry("events", "datetime", ["datetime"])
+     newestEventDate = await databaseConn.retrieveFirstEntry("events", "datetime", ["datetime"])
      newestEventDate = newestEventDate[0].astimezone(timezone(event[4]))
      logging.info("Earliest event date: {}".format(newestEventDate))
      if event[3] == newestEventDate:
@@ -122,8 +121,8 @@ async def determineIfNewestEventIsMostPertinent(event):
                logging.info("Something went wrong setting a timer for the new event {}".format(e))
 
 async def setTimerForClosestEvent():
-     await filerw.setTime("UTC")
-     event = await filerw.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
+     await databaseConn.setTime("UTC")
+     event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
      if event == None:
           raise IndexError
      else:
@@ -146,11 +145,11 @@ async def cancelRunningEvent():
 
 async def deleteEvent(database, simultaneousEvents):
      for event in simultaneousEvents:
-          await filerw.deleteEntry(database, {"name" : event[0], "channel" : event[1], "datetime" : event[2]})
+          await databaseConn.deleteEntry(database, {"name" : event[0], "channel" : event[1], "datetime" : event[2]})
 
 async def findSimultaneousEvents(originalEvent):
      logging.info("Finding simultaneous events")
-     simultaneousEvents = await filerw.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime"])
+     simultaneousEvents = await databaseConn.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime"])
      return simultaneousEvents
 
 async def findWaitTime(event):

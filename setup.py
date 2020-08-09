@@ -3,6 +3,7 @@ import os
 import psycopg2
 
 from dotenv import load_dotenv
+from filerw import DatabaseConnection
 
 client = discord.Client()
 
@@ -11,5 +12,4 @@ discordToken = os.getenv("DISCORD_TOKEN")
 
 databaseURL = os.getenv("DATABASE_URL")
 
-connection = psycopg2.connect(databaseURL, sslmode="require")
-cursor = connection.cursor()
+databaseConn = DatabaseConnection(databaseURL)
