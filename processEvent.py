@@ -217,3 +217,15 @@ async def sendReminder(referenceEvent):
                logging.info("no items in events list")
      except errors.NoServerConnectionError:
           raise errors.NoServerConnectionError
+
+async def checkTimezoneGuildAndDMs(availableGuilds):
+     savedGuilds = await databaseConn.retrieveSpecificColumns("channel_timezones", ["guild"])
+     savedGuilds = list(dict.fromkeys(savedGuilds))
+     savedGuilds.remove((0,))
+     logging.info(savedGuilds)
+     for guild in savedGuilds:
+          if guild[0] not in availableGuilds:
+               logging.info("{} not in guilds that meow machine is connected to".format(guild[0]))
+               await databaseConn.deleteEntry("channel_timezones", {"guild": guild[0]})
+          else:
+               logging.info("{} in guilds that meow machine is connected to".format(guild[0]))

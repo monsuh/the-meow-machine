@@ -26,6 +26,14 @@ async def on_ready():
           logging.info("no items in events list")
      except Exception as e:
           logging.info("Error with initializing: {}".format(e))
+     try:
+          availableGuilds = client.guilds
+          for i in range(0, len(availableGuilds), 1):
+               availableGuilds[i] = availableGuilds[i].id
+          logging.info(availableGuilds)
+          await asyncio.create_task(processEvent.checkTimezoneGuildAndDMs(availableGuilds))
+     except Exception as e:
+          logging.info("Error with checking guilds: {}".format(e))
 
 @client.event
 async def on_message(message):

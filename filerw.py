@@ -62,10 +62,22 @@ class DatabaseConnection:
           return self.cursor.fetchone()
 
      @retryConnection
-     async def retrieveAllEntries(self, database):
-          self.cursor.execute(
-               sql.SQL("SELECT * FROM {table}").format(
-                    table = sql.Identifier(database)))
+     async def retrieveAllColumns(self, database):
+          command = sql.SQL("SELECT * FROM {table}").format(
+                    table = sql.Identifier(database)
+               )
+          self.cursor.execute(command)
+          return self.cursor.fetchall()
+     
+     @retryConnection
+     async def retrieveSpecificColumns(self, database, columns):
+          command = sql.SQL("SELECT {columns} FROM {table}").format(
+                    columns = sql.SQL(', ').join(
+                         sql.Identifier(database, column) for column in columns    
+                    ),
+                    table = sql.Identifier(database)
+               )
+          self.cursor.execute(command)
           return self.cursor.fetchall()
 
      @retryConnection
