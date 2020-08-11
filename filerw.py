@@ -45,25 +45,25 @@ class DatabaseConnection:
           self.cursor.execute(command)
 
      @retryConnection
-     async def retrieveCurrentTime(self):
-          command = sql.SQL("SELECT LOCALTIMESTAMP")
-          self.cursor.execute(command)
-          return self.cursor.fetchone()
-
-     @retryConnection
      async def retrieveFirstEntry(self, database, key, columns):
-          self.cursor.execute(
-               sql.SQL('SELECT {columns} FROM {table} ORDER BY {orderKey};').format(
+          command = sql.SQL(
+               '''
+                    SELECT {columns} 
+                    FROM {table} 
+                    ORDER BY {orderKey};
+               ''').format(
                     columns = sql.SQL(', ').join(
                          sql.Identifier(database, column) for column in columns    
                     ), 
                     table = sql.Identifier(database), 
-                    orderKey = sql.Identifier(database, key)))
+                    orderKey = sql.Identifier(database, key)
+               )
+          self.cursor.execute(command)
           return self.cursor.fetchone()
 
      @retryConnection
      async def retrieveAllColumns(self, database):
-          command = sql.SQL("SELECT * FROM {table}").format(
+          command = sql.SQL('''SELECT * FROM {table};''').format(
                     table = sql.Identifier(database)
                )
           self.cursor.execute(command)
@@ -71,7 +71,7 @@ class DatabaseConnection:
      
      @retryConnection
      async def retrieveSpecificColumns(self, database, columns):
-          command = sql.SQL("SELECT {columns} FROM {table}").format(
+          command = sql.SQL('''SELECT {columns} FROM {table};''').format(
                     columns = sql.SQL(', ').join(
                          sql.Identifier(database, column) for column in columns    
                     ),
@@ -109,7 +109,8 @@ class DatabaseConnection:
                     table = sql.Identifier(database),
                     values = sql.SQL(",").join(
                          sql.Placeholder() for item in entry
-                    ))
+                    )
+               )
           self.cursor.execute(command, entry)
           self.connection.commit()
 
@@ -168,12 +169,17 @@ class DatabaseConnection:
 
      @retryConnection
      async def deleteEntry(self, database, params):
-          self.cursor.execute(
-               sql.SQL("DELETE FROM {table} WHERE {column};").format(
+          command = sql.SQL(
+               '''
+                    DELETE FROM {table} 
+                    WHERE {column};
+               ''').format(
                     table = sql.Identifier(database),
                     column = sql.SQL(' AND ').join(
                          sql.Composed([sql.Identifier(database, key), sql.SQL(" = "), sql.Placeholder()]) for key in params.keys()
-                    )), list(params.values()))
+                    )
+               )
+          self.cursor.execute(command, list(params.values()))
           self.connection.commit()
 
      @retryConnection
