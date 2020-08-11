@@ -49,10 +49,10 @@ async def on_message(message):
           helpMessage.set_author(name = "Commands", icon_url = profilePicURL)
           helpMessage.add_field(name = "!poke", value = "Give a quick poke\n`!poke`\n`!poke @someone`", inline = False)
           helpMessage.add_field(name = "!catpic", value = "Get a pic of a lovely little \"cat\"", inline = False)
-          helpMessage.add_field(name = "!stuffypic", value = "Get a pic of a cute stuffy.\n`!stuffypic stuffy-name`\nOptions for stuffies include dozer, mrrat, oracle, oswald, sippy (me), snorlax, sparky, stingray, and strawberry", inline = False)
-          helpMessage.add_field(name = "!simulatesteven", value = "Allows Sippy to temporarily become a 17-year-old boy named Steven", inline = False)
+          helpMessage.add_field(name = "!stuffypic", value = "Get a pic of a cute stuffy\n`!stuffypic stuffy-name`\nOptions for stuffies include dozer, mrrat, oracle, oswald, sippy (me), snorlax, sparky, stingray, and strawberry", inline = False)
+          helpMessage.add_field(name = "!simulatesteven", value = "Allow the spirit of a 17-year-old boy named Steven to temporarily possess Sippy", inline = False)
           helpMessage.add_field(name = "!event", value = "Set an event which Sippy will remind you of at the designated time\n`{}`\n For date, use today OR tomorrow OR YYYY/MM/DD.\nWrite time as hours:minutesAM/PM (ex. 1:01PM).\nTimezone is optional if you use !settimezone beforehand.\nSee !settimezone for a list of possible timezones.".format(r"!event {name} [date time timezone]"), inline = False)
-          helpMessage.add_field(name = "!recurringevent", value = "Set events that happen multiple times.\n`{}`\nFor date, use today OR tomorrow OR YYYY/MM/DD. Specify the date once if the recurring event only happens during one day.\nWrite time as hours:minutesAM/PM (ex. 1:01PM). An event will not be set for the ending time.\nTimezone is optional if you use !settimezone beforehand.\nSee !settimezone for a list of possible timezones.\n Interval refers to the time between each event in minutes.".format(r"!recurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
+          helpMessage.add_field(name = "!recurringevent", value = "Set events that happen multiple times\n`{}`\nFor date, use today OR tomorrow OR YYYY/MM/DD. Specify the date once if the recurring event only happens during one day.\nWrite time as hours:minutesAM/PM (ex. 1:01PM). An event will not be set for the ending time.\nTimezone is optional if you use !settimezone beforehand.\nSee !settimezone for a list of possible timezones.\n Interval refers to the time between each event in minutes.".format(r"!recurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
           helpMessage.add_field(name = "!settimezone", value = "Set the timezone of your channel\n`!settimezone timezone`\nClick [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for a list of timezone names", inline = False)
           helpMessage.add_field(name = "!deleteevent", value = "Delete a singular event\n`{}`\nRefer to !event for formatting instructions for date, time, and timezone.".format(r"!deleteevent {name} [date time timezone]"), inline = False)
           helpMessage.add_field(name = "!deleterecurringevent", value = "Delete a recurring event\n`{}`\nRefer to !recurringevent for formatting instructions for date, time, and timezone.".format(r"!deleterecurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
@@ -75,34 +75,34 @@ async def on_message(message):
                stuffyPicsFolder = Path("pics")
                await message.channel.send(file=discord.File(stuffyPicsFolder / "{}_{}.png".format(stuffyName, str(randomNumber))))
           except FileNotFoundError:
-               await message.channel.send("an oopsie happened there are no stuffies named {}".format(stuffyName))
+               await message.channel.send("You must be mistaken. There are no stuffies named {}".format(stuffyName))
           except IndexError:
-               await message.channel.send("did you remember to name which stuffy you wanted?")
+               await message.channel.send("Did you remember to name which stuffy you wanted?")
      elif message.content.startswith("!simulatesteven"):
+          await message.channel.send(":o")
           await message.channel.send("indeed")
      elif message.content.startswith("!event"):
           try:
                event = await processEvent.processEventMessage(message)
                logging.info("New event received: {}".format(event))
-               await processEvent.ensureValidTime(event[4], event[3])
                await databaseConn.insertEvent(event)
                await processEvent.determineIfNewestEventIsMostPertinent(event)
           except errors.EventTooEarlyError:
                logging.info("ERROR: Event time set before current time")
-               await message.channel.send("you are scheduling this event to occur before the current time. don't.")
+               await message.channel.send("You are trying to schedule this event to occur before the current time. NO! I'm gonna cry :'(")
           except ValueError:
-               await message.channel.send("did you type everything in correctly?")
+               await message.channel.send("Did you type everything in correctly?")
           except errors.RepetitionError:
-               await message.channel.send("you already set this as an event")
+               await message.channel.send("You already set this as an event.")
           except errors.NoTimeZoneError:
                logging.info("ERROR: No specified timezone")
-               await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone and use !timezones for a list of valid timezones.")
+               await message.channel.send("You did not specify a timezone and you do not have a timezone saved for this channel. You can set one with !settimezone and check !help for a list of valid timezones.")
           except errors.NoServerConnectionError:
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
-               await message.channel.send("inputted")
+               await message.channel.send("Inputted.")
      elif message.content.startswith("!recurringevent"):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
@@ -115,26 +115,26 @@ async def on_message(message):
                          await databaseConn.insertEvent(event)
                     await processEvent.determineIfNewestEventIsMostPertinent(eventsList[0])
           except ValueError:
-               await message.channel.send("did you type everything in correctly?")
+               await message.channel.send("Did you type everything in correctly?")
           except errors.RepetitionError:
-               await message.channel.send("you already set this as an event")
+               await message.channel.send("You already set this as an event.")
           except errors.WrongCommandError:
-               await message.channel.send("you should use !event instead for events occurring at a single time")
+               await message.channel.send("You should use !event for events occurring at a single time.")
           except errors.EventTooEarlyError:
                logging.info("ERROR: Event time set before current time")
-               await message.channel.send("you are scheduling this event to occur before the current time. don't.")
+               await message.channel.send("You are trying to schedule this event to occur before the current time. NO! I'm gonna cry :'(")
           except errors.NoTimeZoneError:
                logging.info("ERROR: No specified timezone")
-               await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone. use !help to get a list of possible timezones.")
+               await message.channel.send("You did not specify a timezone and you do not have a timezone saved for this channel. You can set one with !settimezone and check !help for a list of valid timezones.")
           except errors.TooManyEventsError:
                logging.info("ERROR: Too many events to insert")
-               await message.channel.send("whoa there bucko, that's too many events. i am just a little cat.")
+               await message.channel.send("Whoa there bucko, that's too many events. I'm baby, I cannot hold that many events.")
           except errors.NoServerConnectionError:
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
-               await message.channel.send("inputted")
+               await message.channel.send("Inputted.")
      elif message.content.startswith("!deleteevent"):
           try:
                event = await processEvent.processEventMessage(message)
@@ -149,12 +149,18 @@ async def on_message(message):
                else:
                     raise errors.EventDoesNotExistError
           except errors.EventDoesNotExistError:
-               await message.channel.send("THOUGHT YOU COULD TRICK ME HUH? you are trying to delete an event that doesn't even exist.")
+               await message.channel.send("You are trying to delete an event that doesn't exist.")
           except errors.NoServerConnectionError:
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
+          except errors.EventTooEarlyError:
+               logging.info("ERROR: Event time set before current time")
+               await message.channel.send("You are deleting an event that should have already occurred and subsequently been deleted.")
+          except errors.NoTimeZoneError:
+               logging.info("ERROR: No specified timezone")
+               await message.channel.send("You did not specify a timezone and you do not have a timezone saved for this channel. You can set one with !settimezone and check !help for a list of valid timezones.")
           except Exception as e:
                logging.info("Something went wrong deleting the new event {}".format(e))
-               await message.channel.send("something has gone wrong deleting your event.")
+               await message.channel.send("Something has gone wrong deleting your event.")
      elif message.content.startswith("!deleterecurringevent"):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
@@ -170,17 +176,17 @@ async def on_message(message):
                     await processEvent.cancelRunningEvent()
                     await processEvent.setTimerForClosestEvent()
           except ValueError:
-               await message.channel.send("did you type everything in correctly?")
+               await message.channel.send("Did you type everything in correctly?")
           except errors.WrongCommandError:
-               await message.channel.send("you should use !deleteevent instead to delete events occurring at a single time")
+               await message.channel.send("You should use !deleteevent to delete events occurring at a single time.")
           except errors.EventTooEarlyError:
                logging.info("ERROR: Event time set before current time")
-               await message.channel.send("you are deleting an event that should have already occurred and been deleted.")
+               await message.channel.send("You are deleting an event that should have already occurred and subsequently been deleted.")
           except errors.NoTimeZoneError:
                logging.info("ERROR: No specified timezone")
-               await message.channel.send("you did not specify a timezone and you do not have a timezone saved for this channel. you can set one with !settimezone. use !help to get a list of possible timezones.")
+               await message.channel.send("You did not specify a timezone and you do not have a timezone saved for this channel. You can set one with !settimezone and check !help for a list of valid timezones.")
           except errors.EventDoesNotExistError:
-               await message.channel.send("THOUGHT YOU COULD TRICK ME HUH? you are trying to delete a minimum of one event that doesn't exist.")
+               await message.channel.send("You are trying to delete a minimum of one event that doesn't exist.")
           except errors.NoServerConnectionError:
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
@@ -193,7 +199,7 @@ async def on_message(message):
                allEventsList = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
                channelEventsList = []
                for event in allEventsList:
-                    eventTime = await formatdt.humanFormatEventDateTime(event)
+                    eventTime = await formatdt.humanFormatEventDateTime(event[1], event[2])
                     formattedEvent = "{} at {}/{}/{} {}:{}{} {}\n".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[2]) #change to reflect event timezone
                     channelEventsList.append(formattedEvent)
                logging.info(channelEventsList)
@@ -218,7 +224,7 @@ async def on_message(message):
                     logging.info("No guild, DM channel")
                     guild = 0
                channel = message.channel.id
-               await formatdt.testTimeZone(channelTimezone)
+               await formatdt.testTimezone(channelTimezone)
                logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, channelTimezone))
                existingChannel = await databaseConn.findEntries("channel_timezones", {"channel" : channel}, ["timezone"])
                logging.info("The database already has this value saved for channel {}: {}".format(channel, existingChannel))
@@ -235,9 +241,9 @@ async def on_message(message):
           except errors.NoServerConnectionError:
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
-               logging.info("Something went wrong saving timezone {}".format(e))
+               logging.info("Something went wrong saving timezone {}.".format(e))
           else:
-               await message.channel.send("The timezone has been set to {}".format(channelTimezone))
+               await message.channel.send("The timezone has been set to {}.".format(channelTimezone))
      if message.author == client.user:
           return
      elif message.content.lower().find("sippy") != -1:
