@@ -49,10 +49,10 @@ async def on_message(message):
           helpMessage.set_author(name = "Commands", icon_url = profilePicURL)
           helpMessage.add_field(name = "!poke", value = "Give a quick poke\n`!poke`\n`!poke @someone`", inline = False)
           helpMessage.add_field(name = "!catpic", value = "Get a pic of a lovely little \"cat\"", inline = False)
-          helpMessage.add_field(name = "!stuffypic", value = "Get a pic of a cute stuffy\n`!stuffypic stuffy-name`\nOptions for stuffies include dozer, mrrat, oracle, oswald, sippy (me), snorlax, sparky, stingray, and strawberry", inline = False)
+          helpMessage.add_field(name = "!stuffypic", value = "Get a pic of a cute stuffy\n`!stuffypic stuffy-name`\nOptions for stuffy name include dozer, mrrat, oracle, oswald, sippy, snorlax, sparky, stingray, and strawberry", inline = False)
           helpMessage.add_field(name = "!simulatesteven", value = "Allow the spirit of a 17-year-old boy named Steven to temporarily possess Sippy", inline = False)
-          helpMessage.add_field(name = "!event", value = "Set an event which Sippy will remind you of at the designated time\n`{}`\n For date, use today OR tomorrow OR YYYY/MM/DD.\nWrite time as hours:minutesAM/PM (ex. 1:01PM).\nTimezone is optional if you use !settimezone beforehand.\nSee !settimezone for a list of possible timezones.".format(r"!event {name} [date time timezone]"), inline = False)
-          helpMessage.add_field(name = "!recurringevent", value = "Set events that happen multiple times\n`{}`\nFor date, use today OR tomorrow OR YYYY/MM/DD. Specify the date once if the recurring event only happens during one day.\nWrite time as hours:minutesAM/PM (ex. 1:01PM). An event will not be set for the ending time.\nTimezone is optional if you use !settimezone beforehand.\nSee !settimezone for a list of possible timezones.\n Interval refers to the time between each event in minutes.".format(r"!recurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
+          helpMessage.add_field(name = "!event", value = "Set an event which Sippy will remind you of at the designated time\n`{}`\n For date, use today OR tomorrow OR YYYY/MM/DD.\nWrite time as hours:minutesAM/PM (ex. 1:01PM).\nTimezone is optional if you use !settimezone beforehand. See !settimezone for a list of possible timezones.".format(r"!event {name} [date time timezone]"), inline = False)
+          helpMessage.add_field(name = "!recurringevent", value = "Set events that happen multiple times\n`{}`\nFor date, refer to !event. Note that you can specify the date once if the recurring event happens throughout only one day.\nFor time, refer to !event. Note that an event will not be set for the ending time.\nTimezone is optional if you use !settimezone beforehand. See !settimezone for a list of possible timezones.\n Interval refers to the time between each event in minutes.".format(r"!recurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
           helpMessage.add_field(name = "!settimezone", value = "Set the timezone of your channel\n`!settimezone timezone`\nClick [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for a list of timezone names", inline = False)
           helpMessage.add_field(name = "!deleteevent", value = "Delete a singular event\n`{}`\nRefer to !event for formatting instructions for date, time, and timezone.".format(r"!deleteevent {name} [date time timezone]"), inline = False)
           helpMessage.add_field(name = "!deleterecurringevent", value = "Delete a recurring event\n`{}`\nRefer to !recurringevent for formatting instructions for date, time, and timezone.".format(r"!deleterecurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
@@ -62,7 +62,7 @@ async def on_message(message):
      elif message.content.startswith("!poke"):
           if len(message.mentions) != 0:
                for mention in message.mentions:
-                    await message.channel.send("{} just poked {}. it's super effective.".format(message.author.mention, mention.mention))      
+                    await message.channel.send("{} just poked {}. It's super effective.".format(message.author.mention, mention.mention))      
           else:
                await message.channel.send("{} just poked themselves out of confusion.".format(message.author.mention))
      elif message.content.startswith("!catpic"):
