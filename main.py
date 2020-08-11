@@ -79,8 +79,11 @@ async def on_message(message):
           except IndexError:
                await message.channel.send("Did you remember to name which stuffy you wanted?")
      elif message.content.startswith("!simulatesteven"):
-          await message.channel.send(":o")
-          await message.channel.send("indeed")
+          randomNumber = randint(1,2)
+          if randomNumber == 1:
+               await message.channel.send(":o")
+          elif randomNumber == 2:
+               await message.channel.send("indeed")
      elif message.content.startswith("!event"):
           try:
                event = await processEvent.processEventMessage(message)
@@ -101,6 +104,7 @@ async def on_message(message):
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
+               await message.channel.send("Something has gone wrong inputting your event.")
           else:
                await message.channel.send("Inputted.")
      elif message.content.startswith("!recurringevent"):
@@ -133,6 +137,7 @@ async def on_message(message):
                await message.channel.send("Sorry, I can't process your request because the servers are down right now. :(")
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
+               await message.channel.send("Something has gone wrong inputting your recurring event.")
           else:
                await message.channel.send("Inputted.")
      elif message.content.startswith("!deleteevent"):
