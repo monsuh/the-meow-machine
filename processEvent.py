@@ -43,6 +43,7 @@ async def processEventMessage(message):
           except errors.NoServerConnectionError:
                raise errors.NoServerConnectionError
      eventDateTime = await formatdt.processDateTime(eventDateTimeRaw.split()[0], eventDateTimeRaw.split()[1], eventTimeZone)
+     await formatdt.ensureValidTime(eventTimeZone, eventDateTime)
      event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
      return event
 
@@ -108,7 +109,7 @@ async def processRecurringEventMessage(message):
      logging.info("Final recurring event end date time: {}".format(eventEndDateTime))
      eventDateTime = await formatdt.processDateTime(eventStartDate, eventStartTime, eventTimeZone)
      logging.info("Final recurring event start date time: {}".format(eventDateTime))
-     await ensureValidTime(eventTimeZone, eventDateTime)
+     await formatdt.ensureValidTime(eventTimeZone, eventDateTime)
      eventList = []
      while eventDateTime < eventEndDateTime:
           event = (eventName, eventGuild, eventChannel, eventDateTime, eventTimeZone)
@@ -116,15 +117,6 @@ async def processRecurringEventMessage(message):
           eventList.append(event)
           eventDateTime = eventDateTime + timedelta(minutes = eventInterval)
      return eventList
-
-async def ensureValidTime(eventTz, eventDateTime):
-     utc = timezone("UTC")
-     eventTimeZone = timezone(eventTz)
-     currentDateTime = utc.localize(datetime.utcnow()).astimezone(eventTimeZone)
-     logging.info("Current date and time: {}".format(currentDateTime))
-     logging.info("Inserted event datetime: {}".format(eventDateTime))
-     if currentDateTime > eventDateTime:
-          raise errors.EventTooEarlyError
 
 async def determineIfNewestEventIsMostPertinent(event):
      try:
@@ -146,7 +138,7 @@ async def determineIfNewestEventIsMostPertinent(event):
 async def setTimerForClosestEvent():
      try:
           await databaseConn.setTime("UTC")
-          event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime"])
+          event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime", "timezone"])
           if event == None:
                raise IndexError
           else:
@@ -174,7 +166,7 @@ async def deleteEvent(database, simultaneousEvents):
 
 async def findSimultaneousEvents(originalEvent):
      logging.info("Finding simultaneous events")
-     simultaneousEvents = await databaseConn.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime"])
+     simultaneousEvents = await databaseConn.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime", "timezone"])
      return simultaneousEvents
 
 async def findWaitTime(event):
@@ -195,18 +187,16 @@ async def sendReminder(referenceEvent):
                     channel = client.get_channel(int(event[1]))
                     eventName = event[0]
                     try:
-                         await channel.send("hey guys {} is happening now!".format(eventName))
+                         await channel.send("Hey gamers, {} is happening now!".format(eventName))
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
           else:
                for event in simultaneousEvents:
                     #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
                     channel = client.get_channel(int(event[1]))
-                    eventName = event[0]
-                    #eventTime = await formatdt.humanFormatEventTime(event)
-                    #await channel.send("hey guys we missed {} at {}:{}{}".format(eventName, str(eventTime[0]), eventTime[1], eventTime[2]))
                     try:
-                         await channel.send("hey guys we missed {}!".format(eventName))
+                         eventTime = await formatdt.humanFormatEventDateTime(event[2], event[3])
+                         await channel.send("Oh no! We missed {} at {}/{}/{} {}:{}{} {}".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[3]))
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
           await deleteEvent("events", simultaneousEvents)
