@@ -61,11 +61,15 @@ async def processDateTime(date, time, eventTz):
      except:
           logging.info("Invalid time minute value inputted: {}".format(time.split(":")[0]))
           raise ValueError
-     return eventTimezone.localize(datetime(year, month, day, hours, minutes))
+     try:
+          return eventTimezone.localize(datetime(year, month, day, hours, minutes))
+     except:
+          logging.info("Invalid numerical values for year: {}, month: {}, day: {}, hours: {}, or minutes: {} inputted".format(year, month, day, hours, minutes))
+          raise ValueError
 
-async def humanFormatEventDateTime(event):
-     eventTimezone = timezone(event[2])
-     localizedTime = event[1].astimezone(eventTimezone)
+async def humanFormatEventDateTime(eventDatetime, eventTimezone):
+     eventTimezone = timezone(eventTimezone)
+     localizedTime = eventDatetime.astimezone(eventTimezone)
      eventYear = localizedTime.date().year
      eventMonth = localizedTime.date().month
      eventDay = localizedTime.date().day
@@ -73,6 +77,8 @@ async def humanFormatEventDateTime(event):
      eventMeridian = ""
      if eventHour < 12:
           eventMeridian = "AM"
+          if eventHour == 0:
+               eventHour = 12
      else:
           eventHour = eventHour - 12
           eventMeridian = "PM"
@@ -81,7 +87,16 @@ async def humanFormatEventDateTime(event):
           eventMinute = "0{}".format(eventMinute)
      return (eventYear, eventMonth, eventDay, eventHour, eventMinute, eventMeridian)
 
-async def testTimeZone(inputtedTimezone):
+async def ensureValidTime(eventTz, eventDateTime):
+     utc = timezone("UTC")
+     eventTimeZone = timezone(eventTz)
+     currentDateTime = utc.localize(datetime.utcnow()).astimezone(eventTimeZone)
+     logging.info("Current date and time: {}".format(currentDateTime))
+     logging.info("Inserted event datetime: {}".format(eventDateTime))
+     if currentDateTime > eventDateTime:
+          raise errors.EventTooEarlyError
+
+async def testTimezone(inputtedTimezone):
      try:
           timezone(inputtedTimezone)
      except Exception as e:
