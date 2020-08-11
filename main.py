@@ -203,6 +203,7 @@ async def on_message(message):
           try:
                channelEventsListRaw = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
                channelEventsListRaw = sorted(channelEventsListRaw, key = formatdt.getDatetime)
+               channelEventsListRaw = channelEventsListRaw[0:20]
                channelEventsList = []
                for event in channelEventsListRaw:
                     eventTime = await formatdt.humanFormatEventDateTime(event[1], event[2])
