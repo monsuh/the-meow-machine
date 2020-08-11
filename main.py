@@ -201,9 +201,10 @@ async def on_message(message):
                await channel.send("set of recurring events named {} has been deleted".format(eventsList[0][0]))
      elif message.content.startswith("!showevents"):
           try:
-               allEventsList = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
+               channelEventsListRaw = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
+               channelEventsListRaw = sorted(channelEventsListRaw, key = formatdt.getDatetime)
                channelEventsList = []
-               for event in allEventsList:
+               for event in channelEventsListRaw:
                     eventTime = await formatdt.humanFormatEventDateTime(event[1], event[2])
                     formattedEvent = "{} at {}/{}/{} {}:{}{} {}\n".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[2]) #change to reflect event timezone
                     channelEventsList.append(formattedEvent)

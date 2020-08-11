@@ -80,7 +80,8 @@ async def humanFormatEventDateTime(eventDatetime, eventTimezone):
           if eventHour == 0:
                eventHour = 12
      else:
-          eventHour = eventHour - 12
+          if eventHour > 12:
+               eventHour = eventHour - 12
           eventMeridian = "PM"
      eventMinute = localizedTime.minute
      if eventMinute < 10:
@@ -102,3 +103,6 @@ async def testTimezone(inputtedTimezone):
      except Exception as e:
           logging.info("Error with user timezone: {}".format(e))
           raise errors.InvalidTimeZoneError
+
+def getDatetime(event):
+     return event[1]
