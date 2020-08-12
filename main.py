@@ -51,6 +51,7 @@ async def on_message(message):
           helpMessage.add_field(name = "!catpic", value = "Get a pic of a lovely little \"cat\"", inline = False)
           helpMessage.add_field(name = "!stuffypic", value = "Get a pic of a cute stuffy\n`!stuffypic stuffy-name`\nOptions for stuffy name include dozer, mrrat, oracle, oswald, sippy, snorlax, sparky, stingray, and strawberry", inline = False)
           helpMessage.add_field(name = "!simulatesteven", value = "Allow the spirit of a 17-year-old boy named Steven to temporarily possess Sippy", inline = False)
+          helpMessage.add_field(name = "!simulatecindy", value = "Allow the spirit of a 17-year-old girl named Cindy to temporarily possess Sippy", inline = False)
           helpMessage.add_field(name = "!event", value = "Set an event which Sippy will remind you of at the designated time\n`{}`\n For date, use today OR tomorrow OR YYYY/MM/DD.\nWrite time as hours:minutesAM/PM (ex. 1:01PM).\nTimezone is optional if you use !settimezone beforehand. See !settimezone for a list of possible timezones.".format(r"!event {name} [date time timezone]"), inline = False)
           helpMessage.add_field(name = "!recurringevent", value = "Set events that happen multiple times\n`{}`\nFor date, refer to !event. Note that you can specify the date once if the recurring event happens throughout only one day.\nFor time, refer to !event. Note that an event will not be set for the ending time.\nTimezone is optional if you use !settimezone beforehand. See !settimezone for a list of possible timezones.\n Interval refers to the time between each event in minutes.".format(r"!recurringevent {name} [date-date time-time timezone] <interval>"), inline = False)
           helpMessage.add_field(name = "!settimezone", value = "Set the timezone of your channel\n`!settimezone timezone`\nClick [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) for a list of timezone names", inline = False)
@@ -79,11 +80,13 @@ async def on_message(message):
           except IndexError:
                await message.channel.send("Did you remember to name which stuffy you wanted?")
      elif message.content.startswith("!simulatesteven"):
-          randomNumber = randint(1,2)
-          if randomNumber == 1:
-               await message.channel.send(":o")
-          elif randomNumber == 2:
-               await message.channel.send("indeed")
+          await message.channel.send("indeed")
+     elif message.content.startswith("!simulatecindy"):
+          randomNumber = randint(1, 20)
+          replyText = ":"
+          for _ in range (0, randomNumber, 1):
+               replyText = replyText + "o"
+          await message.channel.send(replyText)
      elif message.content.startswith("!event"):
           try:
                event = await processEvent.processEventMessage(message)
