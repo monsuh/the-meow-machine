@@ -191,6 +191,7 @@ async def sendReminder(referenceEvent):
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
                          print("Could not send reminder message: {}".format(e))
+                         print("Message channel: {}".format(event[1]))
           else:
                for event in simultaneousEvents:
                     #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
@@ -201,6 +202,7 @@ async def sendReminder(referenceEvent):
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
                          print("Could not send reminder message: {}".format(e))
+                         print("Message channel: {}".format(event[1]))
           await deleteEvent("events", simultaneousEvents)
           await cancelRunningEvent()
           try:
