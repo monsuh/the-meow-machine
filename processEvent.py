@@ -191,6 +191,7 @@ async def sendReminder(referenceEvent):
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
                          print("Could not send reminder message: {}".format(e))
+                         print("Message event: {}".format(event))
                          print("Message channel: {}".format(event[1]))
           else:
                for event in simultaneousEvents:
@@ -202,6 +203,7 @@ async def sendReminder(referenceEvent):
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
                          print("Could not send reminder message: {}".format(e))
+                         print("Message event: {}".format(event))
                          print("Message channel: {}".format(event[1]))
           await deleteEvent("events", simultaneousEvents)
           await cancelRunningEvent()
