@@ -6,7 +6,30 @@ from datetime import datetime, timedelta
 from psycopg2 import sql
 
 def retryConnection(function):
+     """Decorate a database function to handle connection failures.
+
+     Parameters
+     ----------
+     function : function
+          The database function run within the decorator
+     
+     Returns
+     -------
+     function
+          The decorated database function
+     """
      async def handleFailure(*args):
+          """Run a database function and reset the connection and cursor objects if an error is returned.
+
+          Parameters
+          ----------
+          *args: List of arguments of variable length
+
+          Raises
+          ------
+          errors.NoServerConnectionError
+               If resetting the connection and cursor five times does not result in the database function executing properly.
+          """
           try:
                dbContents = await function(*args)
                return dbContents
@@ -28,6 +51,37 @@ def retryConnection(function):
      return handleFailure
 
 class DatabaseConnection:
+     """
+     A class used to handle connections and operations with the PostgreSQL database.
+
+     Attributes
+     ----------
+     connection : psycopg2.connection
+     cursor : psycopg2.cursor
+
+     Methods
+     -------
+     setTime(tz)
+          Set the timezone of the database.
+     retrieveFirstEntry(database, key, columns)
+          Retrieve the first entry in a sorted column.
+     retrieveAllColumns(database)
+          Retrieve all columns of all entries from a table.
+     retrieveSpecificColumns(database, columns)
+          Retrieve specific columns of all entries from a table.
+     findEntries(database, searchTerms, columns)
+          Retrieve specific columns of entries meeting a user-defined requirement.
+     insertEntry(database, entry)
+          Insert an entry into a table.
+     insertEvent(entry)
+          Insert an event into a table after setting the timezone and checking for duplicates.
+     insertMultipleEvents(entriesList)
+          Insert multiple events into a table after setting the timezone and checking for duplicates.
+     deleteEntry(self, database, params)
+          Delete an entry from a table.
+     updateEntry(self, database, updates, conditions)
+          Update an entry in a table.
+     """
 
      def __init__(self, databaseURL):
           try:
@@ -40,12 +94,35 @@ class DatabaseConnection:
      
      @retryConnection
      async def setTime(self, tz):
+          """Set the timezone of the database.
+
+          Parameters
+          ----------
+          tz : str
+               The timezone the database is set to
+          """
           command = sql.SQL('''SET TIMEZONE TO {timezone};''').format(
                     timezone = sql.Identifier(tz))
           self.cursor.execute(command)
 
      @retryConnection
      async def retrieveFirstEntry(self, database, key, columns):
+          """Retrieve the first entry in a sorted column.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is retrieved from
+          key : str
+               The column name that the entries are sorted by
+          columns : list
+               The column name(s) of the entry that is/are returned
+          
+          Returns
+          -------
+          Tuple
+               The information contained within the specified columns of the entry
+          """
           command = sql.SQL(
                '''
                     SELECT {columns} 
@@ -63,6 +140,18 @@ class DatabaseConnection:
 
      @retryConnection
      async def retrieveAllColumns(self, database):
+          """Retrieve all columns of all entries from a table.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is retrieved from
+          
+          Returns
+          -------
+          List
+               Tuples containing the information of every entry in the table
+          """
           command = sql.SQL('''SELECT * FROM {table};''').format(
                     table = sql.Identifier(database)
                )
@@ -71,6 +160,20 @@ class DatabaseConnection:
      
      @retryConnection
      async def retrieveSpecificColumns(self, database, columns):
+          """Retrieve specific columns of all entries from a table.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is retrieved from
+          columns : list
+               The column name(s) of the entry that is/are returned
+          
+          Returns
+          -------
+          List
+               Tuples containing the information of every entry in the table
+          """
           command = sql.SQL('''SELECT {columns} FROM {table};''').format(
                     columns = sql.SQL(', ').join(
                          sql.Identifier(database, column) for column in columns    
@@ -82,6 +185,22 @@ class DatabaseConnection:
 
      @retryConnection
      async def findEntries(self, database, searchTerms, columns):
+          """Retrieve specific columns of entries meeting a user-defined requirement.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is retrieved from
+          searchTerms : dictionary
+               The column name(s) and information that the entry/ies returned must contain.
+          columns : list
+               The column name(s) of the entry/ies that is/are returned
+          
+          Returns
+          -------
+          List
+               Tuples containing the information of every entry in the table
+          """
           command = sql.SQL(
                '''
                     SELECT {columns} 
@@ -101,6 +220,15 @@ class DatabaseConnection:
 
      @retryConnection
      async def insertEntry(self, database, entry):
+          """Insert an event into a table after setting the timezone and checking for duplicates.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is inserted into
+          entry : tuple
+               The entry that is being inserted into the table
+          """
           command = sql.SQL(
                '''
                     INSERT INTO {table}
@@ -115,6 +243,13 @@ class DatabaseConnection:
           self.connection.commit()
 
      async def insertEvent(self, entry):
+          """Insert multiple events into a table after setting the timezone and checking for duplicates.
+
+          Parameters
+          ----------
+          entry : tuple
+               The event that is being inserted into the events table
+          """
           try:
                await self.setTime(entry[4])
           except errors.NoServerConnectionError:
@@ -142,6 +277,13 @@ class DatabaseConnection:
                          logging.info("Error with inserting data: {}".format(e))
 
      async def insertMultipleEvents(self, entriesList):
+          """Insert multiple events into a table after setting the timezone and checking for duplicates.
+
+          Parameters
+          ----------
+          entriesList : list
+               The events being inserted into the events table
+          """
           try:
                await self.setTime(entriesList[0][4])
           except errors.NoServerConnectionError:
@@ -169,6 +311,15 @@ class DatabaseConnection:
 
      @retryConnection
      async def deleteEntry(self, database, params):
+          """Delete an entry from a table.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is deleted from
+          params: dict
+               The column name(s) and information that the entry/ies to be deleted must have 
+          """
           command = sql.SQL(
                '''
                     DELETE FROM {table} 
@@ -184,6 +335,17 @@ class DatabaseConnection:
 
      @retryConnection
      async def updateEntry(self, database, updates, conditions):
+          """Update an entry in a table.
+
+          Parameters
+          ----------
+          database : str
+               The name of the table the entry is deleted from
+          updates : dict
+               The column name(s) and information that the entry/ies to be updated will be updated to have
+          conditions : dict
+               The column name(s) and information that the entry/ies to be updated must have
+          """
           command = sql.SQL(
                '''
                     UPDATE {table}
