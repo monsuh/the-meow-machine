@@ -76,7 +76,7 @@ async def on_message(message):
                stuffyPicsFolder = Path("pics")
                await message.channel.send(file=discord.File(stuffyPicsFolder / "{}_{}.png".format(stuffyName, str(randomNumber))))
           except FileNotFoundError:
-               await message.channel.send("You must be mistaken. There are no stuffies named {}".format(stuffyName))
+               await message.channel.send("You must be mistaken. There are no stuffies named {}.".format(stuffyName))
           except IndexError:
                await message.channel.send("Did you remember to name which stuffy you wanted?")
      elif message.content.startswith("!simulatesteven"):
@@ -152,8 +152,6 @@ async def on_message(message):
                     await databaseConn.deleteEntry("events", {"name": event[0], "channel": event[2], "datetime": event[3]})
                     await processEvent.cancelRunningEvent()
                     await processEvent.setTimerForClosestEvent()
-                    channel = client.get_channel(event[2])
-                    await channel.send("{} has been deleted".format(event[0]))
                else:
                     raise errors.EventDoesNotExistError
           except errors.EventDoesNotExistError:
@@ -169,6 +167,8 @@ async def on_message(message):
           except Exception as e:
                logging.info("Something went wrong deleting the new event {}".format(e))
                await message.channel.send("Something has gone wrong deleting your event.")
+          else:
+               await message.channel.send("{} has been deleted".format(event[0]))
      elif message.content.startswith("!deleterecurringevent"):
           try:
                eventsList = await processEvent.processRecurringEventMessage(message)
@@ -200,11 +200,16 @@ async def on_message(message):
           except Exception as e:
                logging.info("Something went wrong waiting for the new event: {}".format(e))
           else:
-               channel = client.get_channel(eventsList[0][2])
-               await channel.send("set of recurring events named {} has been deleted".format(eventsList[0][0]))
+               await message.channel.send("set of recurring events named {} has been deleted".format(eventsList[0][0]))
      elif message.content.startswith("!showevents"):
           try:
-               channelEventsListRaw = await databaseConn.findEntries("events", {"channel": message.channel.id}, ["name", "datetime", "timezone"])
+               try:
+                    int(message.guild.id)
+               except:
+                    eventChannel = message.author.id
+               else:
+                    eventChannel = message.channel.id
+               channelEventsListRaw = await databaseConn.findEntries("events", {"channel": eventChannel}, ["name", "datetime", "timezone"])
                channelEventsListRaw = sorted(channelEventsListRaw, key = formatdt.getDatetime)
                channelEventsListRaw = channelEventsListRaw[0:20]
                channelEventsList = []
@@ -233,7 +238,10 @@ async def on_message(message):
                except:
                     logging.info("No guild, DM channel")
                     guild = 0
-               channel = message.channel.id
+               if guild == 0:
+                    channel = message.author.id
+               else:
+                    channel = message.channel.id
                await formatdt.testTimezone(channelTimezone)
                logging.info("guild: {}, channel: {}, timezone: {}".format(guild, channel, channelTimezone))
                existingChannel = await databaseConn.findEntries("channel_timezones", {"channel" : channel}, ["timezone"])
