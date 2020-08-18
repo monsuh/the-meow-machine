@@ -15,17 +15,32 @@ async def processEventMessage(message):
           logging.info("No event guild, DM channel")
           eventGuild = 0
      try:
-          eventChannel = int(message.channel.id)
+          if eventGuild == 0:
+               eventChannel = int(message.author.id)
+          else:
+               eventChannel = int(message.channel.id)
      except Exception as e:
           logging.info("Event channel id exception: {}".format(e))
           raise ValueError
      try:
-          eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
+          startIndex = message.content.find("{")
+          endIndex = message.content.find("}")
+          if startIndex == -1 or endIndex == -1:
+               raise ValueError
+          else:
+               eventName = message.content[startIndex + 1:endIndex]
+               logging.info("Event name: {}".format(eventName))
      except Exception as e:
           logging.info("Event name exception: {}".format(e))
           raise ValueError
      try:
-          eventDateTimeRaw = message.content[message.content.find("[") + 1:message.content.find("]")]
+          startIndex = message.content.find("[")
+          endIndex = message.content.find("]")
+          if startIndex == -1 or endIndex == -1:
+               raise ValueError
+          else:
+               eventDateTimeRaw = message.content[startIndex + 1:endIndex]
+               logging.info("Event datetime: {}".format(eventDateTimeRaw))
      except Exception as e:
           logging.info("Event date time exception: {}".format(e))
           raise ValueError
@@ -54,17 +69,31 @@ async def processRecurringEventMessage(message):
           logging.info("No event guild, is a DM a channel")
           eventGuild = 0
      try:
-          eventChannel = int(message.channel.id)
+          if eventGuild == 0:
+               eventChannel = int(message.author.id)
+          else:
+               eventChannel = int(message.channel.id)
      except Exception as e:
           logging.info("Event guild/channel id exception: {}".format(e))
           raise ValueError
      try:
-          eventName = message.content[message.content.find("{") + 1:message.content.find("}")]
+          startIndex = message.content.find("{")
+          endIndex = message.content.find("}")
+          if startIndex == -1 or endIndex == -1:
+               raise ValueError
+          else:
+               eventName = message.content[startIndex + 1:endIndex]
+               logging.info("Event name: {}".format(eventName))
      except Exception as e:
           logging.info("Event name exception: {}".format(e))
           raise ValueError
      try:
-          eventDateTime = message.content[message.content.find("[") + 1:message.content.find("]")]
+          startIndex = message.content.find("[")
+          endIndex = message.content.find("]")
+          if startIndex == -1 or endIndex == -1:
+               raise ValueError
+          eventDateTime = message.content[startIndex + 1:endIndex]
+          logging.info("Event datetime: {}".format(eventDateTime))
      except Exception as e:
           logging.info("Event date time exception: {}".format(e))
           raise ValueError
@@ -138,7 +167,7 @@ async def determineIfNewestEventIsMostPertinent(event):
 async def setTimerForClosestEvent():
      try:
           await databaseConn.setTime("UTC")
-          event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "channel", "datetime", "timezone"])
+          event = await databaseConn.retrieveFirstEntry("events", "datetime", ["name", "guild", "channel", "datetime", "timezone"])
           if event == None:
                raise IndexError
           else:
@@ -162,15 +191,15 @@ async def cancelRunningEvent():
 
 async def deleteEvent(database, simultaneousEvents):
      for event in simultaneousEvents:
-          await databaseConn.deleteEntry(database, {"name" : event[0], "channel" : event[1], "datetime" : event[2]})
+          await databaseConn.deleteEntry(database, {"name" : event[0], "channel" : event[2], "datetime" : event[3]})
 
 async def findSimultaneousEvents(originalEvent):
      logging.info("Finding simultaneous events")
-     simultaneousEvents = await databaseConn.findEntries("events", {"datetime" : originalEvent[2]}, ["name", "channel", "datetime", "timezone"])
+     simultaneousEvents = await databaseConn.findEntries("events", {"datetime" : originalEvent[3]}, ["name", "guild", "channel", "datetime", "timezone"])
      return simultaneousEvents
 
 async def findWaitTime(event):
-     eventDateTime = event[2].replace(tzinfo=None) + timedelta(seconds = 6)
+     eventDateTime = event[3].replace(tzinfo=None) + timedelta(seconds = 6)
      currentDateTime = datetime.utcnow()
      return (eventDateTime - currentDateTime).total_seconds()
 
@@ -183,28 +212,26 @@ async def sendReminder(referenceEvent):
           if waitTime > 0:
                await asyncio.sleep(waitTime)
                for event in simultaneousEvents:
-                    #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-                    channel = client.get_channel(int(event[1]))
+                    if event[1] == 0:
+                         channel = client.get_user(event[2])
+                    else:
+                         channel = client.get_channel(event[2])
                     eventName = event[0]
                     try:
                          await channel.send("Hey gamers, {} is happening now!".format(eventName))
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
-                         print("Could not send reminder message: {}".format(e))
-                         print("Message event: {}".format(event))
-                         print("Message channel: {}".format(event[1]))
           else:
                for event in simultaneousEvents:
-                    #guild = client.get_guild(int(event[event.find("<") + 1: event.find(">")].split()[0]))
-                    channel = client.get_channel(int(event[1]))
+                    if event[1] == 0:
+                         channel = client.get_user(event[2])
+                    else:
+                         channel = client.get_channel(event[2])
                     try:
-                         eventTime = await formatdt.humanFormatEventDateTime(event[2], event[3])
-                         await channel.send("Oh no! We missed {} at {}/{}/{} {}:{}{} {}".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[3]))
+                         eventTime = await formatdt.humanFormatEventDateTime(event[3], event[4])
+                         await channel.send("Oh no! We missed {} at {}/{}/{} {}:{}{} {}".format(event[0], eventTime[0], eventTime[1], eventTime[2], eventTime[3], eventTime[4], eventTime[5], event[4]))
                     except Exception as e:
                          logging.info("Could not send reminder message: {}".format(e))
-                         print("Could not send reminder message: {}".format(e))
-                         print("Message event: {}".format(event))
-                         print("Message channel: {}".format(event[1]))
           await deleteEvent("events", simultaneousEvents)
           await cancelRunningEvent()
           try:
