@@ -276,7 +276,7 @@ class DatabaseConnection:
                     except Exception as e:
                          logging.info("Error with inserting data: {}".format(e))
 
-     async def insertMultipleEvents(self, entriesList):
+     async def insertMultipleEvents(self, entriesList): #used for !recurringevents, but unsure if it results in better performance
           """Insert multiple events into a table after setting the timezone and checking for duplicates.
 
           Parameters
