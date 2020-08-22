@@ -71,7 +71,7 @@ async def on_message(message):
           await message.channel.send(file=discord.File(catpic))
      elif message.content.startswith("!stuffypic"):
           try:
-               stuffyName = message.content.split()[1].lower()
+               stuffyName = message.content.lower().split()[1].lower()
                randomNumber = 1
                stuffyPicsFolder = Path("pics")
                await message.channel.send(file=discord.File(stuffyPicsFolder / "{}_{}.png".format(stuffyName, str(randomNumber))))
