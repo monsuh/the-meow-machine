@@ -176,6 +176,8 @@ async def setTimerForClosestEvent():
                logging.info("setting timer for {}".format(event[0]))
                task.set_name("event timer")
                return task
+     except IndexError:
+          pass
      except errors.NoServerConnectionError:
           raise errors.NoServerConnectionError
 
